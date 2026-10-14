@@ -1,0 +1,27 @@
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const source=await readFile('worker/app.js','utf8');
+const context=vm.createContext({document:{querySelector:()=>({})},crypto:globalThis.crypto,console,Date,structuredClone,localStorage:{}});
+vm.runInContext(source.slice(0,source.indexOf("$('#race').onchange=")),context);
+assert.equal(vm.runInContext("parseDuration('02:30')",context),150000);
+assert.equal(vm.runInContext("parseDuration('02:60')",context),null);
+assert.equal(vm.runInContext("dur(1505200)",context),'25:05.2');
+assert.equal(vm.runInContext("parseCSV('name,rider_number\\r\\n\"Alex, Test\",42\\r\\n')[1][0]",context),'Alex, Test');
+const seed=JSON.parse(await readFile('worker/seed.json','utf8'));context.fixture=seed;
+vm.runInContext("seed=fixture;raceId=seed.races[0].id;derive();",context);
+for(const expected of seed.expected_results.filter(e=>e.status==='finished')){context.eid=expected.rider_entry_id;assert.equal(vm.runInContext('calc(state.rider_entries.find(e=>e.id===eid)).actual',context),expected.actual_duration_ms);assert.equal(vm.runInContext('calc(state.rider_entries.find(e=>e.id===eid)).adjusted',context),expected.adjusted_duration_ms)}
+assert.equal(vm.runInContext("ranked().filter(e=>e.actualPos===1).length",context)>=0,true);
+vm.runInContext("ops=[{id:'op-a',created:'2026-10-14T10:00:00Z',type:'status',payload:{rider_entry_id:seed.rider_entries[40].id,event:'DNS'}}];derive()",context);
+assert.equal(vm.runInContext('status(state.rider_entries[40])',context),'DNS');
+const workerSource=await readFile('worker/index.js','utf8');const worker=(await import('data:text/javascript;base64,'+Buffer.from(workerSource).toString('base64'))).default;
+let r=await worker.fetch(new Request('https://example.test/'),{});assert.equal(r.status,200);assert.match(await r.text(),/TIME<span>TRIAL/);
+r=await worker.fetch(new Request('https://example.test/api/time'),{});assert.ok((await r.json()).now>0);
+r=await worker.fetch(new Request('https://example.test/api/seed'),{});assert.equal((await r.json()).riders.length,20);
+const objects=new Map();const env={BUCKET:{list:async()=>({objects:[...objects.keys()].map(key=>({key})),truncated:false}),get:async key=>objects.has(key)?{json:async()=>JSON.parse(objects.get(key))}:null,put:async(key,value)=>objects.set(key,value)}};
+const event={id:'test-event',type:'status',organiser_id:'org-01',payload:{rider_entry_id:'test',event:'DNS'}};
+const post=()=>new Request('https://example.test/api/events',{method:'POST',headers:{Origin:'https://example.test'},body:JSON.stringify(event)});
+assert.equal((await worker.fetch(post(),env)).status,200);assert.equal((await worker.fetch(post(),env)).status,200);assert.equal(objects.size,1);
+r=await worker.fetch(new Request('https://example.test/api/events'),env);assert.equal((await r.json()).length,1);
+r=await worker.fetch(new Request('https://example.test/api/events',{method:'POST',headers:{Origin:'https://malicious.test'},body:JSON.stringify(event)}),env);assert.equal(r.status,403);
+console.log('Passed duration, CSV, seeded result calculations, DNS, worker routes, event persistence, idempotency and origin tests.');

@@ -58,7 +58,7 @@ At the end of the list, show that all riders have been processed and disable sta
 
 ### 4.2 Lap screen
 
-A dedicated Lap screen has a large LAP — CAPTURE TIME button. If several lap stations exist, identify this device's station prominently; station configuration is outside the rapid capture path.
+A dedicated Lap screen has a large LAP — CAPTURE TIME button. There is one lap checkpoint, crossed repeatedly on successive laps. Identify this device's station prominently; station configuration is outside the rapid capture path.
 
 Each press saves a separate timestamp BEFORE rider selection. Multiple unassigned captures may accumulate. Show a numbered queue, oldest first, with captured clock time and assignment state.
 
@@ -132,7 +132,7 @@ All comparable results display to tenths. Equal displayed durations share a posi
 
 Negative durations, finishes before starts, duplicate valid starts/finishes and impossible crossing order are review errors. A handicap producing a negative adjusted duration is flagged for review; never silently clamp it.
 
-Whether laps use a repeated checkpoint, several sequential checkpoints or both remains open. The model supports station identity and chronological crossing history; detailed lap-number validation must follow the confirmed course configuration.
+Confirmed course structure: one lap checkpoint, crossed repeatedly on successive laps, with separate Start and Finish stations. Assign lap numbers by captured crossing timestamp, not assignment order.
 
 ## 6. Logical data model
 
@@ -271,7 +271,7 @@ Timing validation must include different devices, clock drift, delayed/lost netw
 5. Implement RiderHQ connector when its supported API contract/access is available.
 6. Field-test a full race, then package/adapt for Android and repeat platform-specific timing tests.
 
-Open decisions: lap/course structure; RiderHQ access contract; supported device/browser matrix; email sender/provider; Android delivery approach; production scale limits; retention policy; final tie convention under applicable race rules. A successful wireframe interaction is not proof of timing accuracy or multi-device reliability.
+Open decisions: RiderHQ access contract; supported device/browser matrix; email sender/provider; Android delivery approach; production scale limits; retention policy; final tie convention under applicable race rules. A successful wireframe interaction is not proof of timing accuracy or multi-device reliability.
 
 ## 12. Research references
 

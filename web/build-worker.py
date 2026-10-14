@@ -1,0 +1,15 @@
+import json
+from pathlib import Path
+p=Path(__file__).parent
+seed=json.loads((p/'worker/seed.json').read_text())
+for r in seed['races']:
+ r['lap_checkpoint_count']=1;r['course_assumption']='One checkpoint crossed repeatedly on successive laps; separate finish'
+(p/'worker/seed.json').write_text(json.dumps(seed,indent=2))
+head='const HTML='+json.dumps((p/'worker/page.html').read_text())+';\nconst APP='+json.dumps((p/'worker/app.js').read_text())+';\nconst SEED='+json.dumps(seed)+';\n'
+api='''
+const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
+async function allEvents(env){let cursor,objects=[];do{const list=await env.BUCKET.list({prefix:'events/',cursor,limit:1000});objects.push(...list.objects);cursor=list.truncated?list.cursor:undefined}while(cursor);return (await Promise.all(objects.map(async o=>(await env.BUCKET.get(o.key))?.json()))).filter(Boolean)}
+export default {async fetch(request,env){try{const url=new URL(request.url);if(url.pathname==='/')return new Response(HTML,{headers:{'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-cache'}});if(url.pathname==='/app.js')return new Response(APP,{headers:{'Content-Type':'text/javascript;charset=utf-8','Cache-Control':'no-cache'}});if(url.pathname==='/api/time')return json({now:Date.now()});if(url.pathname==='/api/seed')return json(SEED);if(url.pathname==='/api/events'){if(!env.BUCKET)return json({error:'Shared storage unavailable'},503);if(request.method==='GET')return json(await allEvents(env));if(request.method!=='POST')return json({error:'Method not allowed'},405);if(request.headers.get('Origin')&&request.headers.get('Origin')!==url.origin)return json({error:'Invalid origin'},403);const raw=await request.text();if(raw.length>500000)return json({error:'Request too large'},413);let op;try{op=JSON.parse(raw)}catch{return json({error:'Invalid JSON'},400)}if(!/^[a-zA-Z0-9-]{1,80}$/.test(op.id||'')||!['capture','assign','void','status','entry','import'].includes(op.type)||!op.payload||!SEED.organisers.some(o=>o.id===op.organiser_id))return json({error:'Invalid operation'},400);const key='events/'+op.id;const existing=await env.BUCKET.get(key);if(existing)return json(await existing.json());const p=op.payload;if(op.type==='capture'&&(!SEED.races.some(r=>r.id===p.race_id)||!['start','lap','finish'].includes(p.type)||!Number.isFinite(Date.parse(p.race_timestamp))||!p.id))return json({error:'Invalid capture'},400);if(op.type==='import'&&(!Array.isArray(p.riders)||!Array.isArray(p.entries)||p.entries.length>1000))return json({error:'Invalid import'},400);op.server_time=new Date().toISOString();await env.BUCKET.put(key,JSON.stringify(op),{onlyIf:{etagDoesNotMatch:'*'}});return json(op)}return new Response('Not found',{status:404})}catch(e){return json({error:'Service unavailable. Keep your locally saved captures and retry.'},503)}}};
+'''
+(p/'worker/index.js').write_text(head+api)
+m=json.loads((p/'.openai/hosting.json').read_text());m['r2']='BUCKET';(p/'.openai/hosting.json').write_text(json.dumps(m,indent=2)+'\n')
