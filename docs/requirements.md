@@ -1,10 +1,10 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.9 — mobile UX updates  
+Version: 1.10 — mobile beta testing feedback  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
-Status: baseline requirements approved by the organiser. Mobile UX feedback recorded below is being prototyped for review; no production timing accuracy is claimed.
+Status: baseline requirements approved by the organiser. Mobile beta feedback below is approved for implementation; no production timing accuracy is claimed.
 
 ## Version 1.1 changes for review
 
@@ -33,7 +33,7 @@ Each device is assigned a race and station/role. Start, Lap and Finish MUST be s
 
 ## 3. Race setup and registration
 
-A race stores name, date, timezone, start location, route name, total distance and optional total elevation gain (interpretation for review). The organiser configures timing stations and registers/imports riders before racing.
+A race stores name, date, timezone, scheduled start time, gap between rider starts (default 01:00), start location, route name, total distance and optional total elevation gain (interpretation for review). The organiser configures timing stations and registers/imports riders before racing.
 
 Riders are reusable people; rider entries are their participation in a particular race. Each entry stores race number, mandatory age on race day, mandatory category (OPEN or FEMALE), predicted completion duration, planned start order and handicap duration.
 
@@ -65,9 +65,9 @@ At the end of the list, show that all riders have been processed and disable sta
 
 A dedicated Checkpoint (Lap) screen has a large LAP — CAPTURE TIME button. A race has zero or more configured required checkpoints. The screen is hidden for Start-and-Finish-only races. Identify the checkpoint being timed prominently; station configuration is outside the rapid capture path. Repeated visits to the same physical location are separate configured checkpoints.
 
-Each press saves a separate timestamp BEFORE rider selection. Multiple unassigned captures may accumulate. Show a numbered queue, oldest first, with captured clock time and assignment state.
+Each press saves a separate timestamp BEFORE rider selection. Multiple unassigned captures may accumulate. Show unassigned recording rows newest first, each with captured clock time and recognised text. For manual batch assignment, retain oldest-first selection and automatic advance.
 
-After capture, optionally speak the rider number for automatic assignment. If nothing is spoken, recognition is unclear, or voice is unavailable, select the rider from the next/active-rider list. For queued manual assignment, select the relevant capture then the eligible rider using large rider-number/name controls and quick number/name search. Assignment does not change the timestamp. Capture remains available while assigning an earlier capture.
+With Audio ON, capture listens for up to five seconds. A recognised eligible number creates a suggestion; the organiser must press Confirm to assign it. If nothing is spoken, recognition is unclear, or voice is unavailable, select the rider from the next/active-rider list. For queued manual assignment, select the relevant capture then the eligible rider using large rider-number/name controls. Assignment does not change the timestamp. Capture remains available while assigning an earlier capture.
 
 ### 4.3 Finish screen
 
@@ -145,9 +145,9 @@ All records have stable unique IDs. Event records carry creation time and respon
 
 | Entity | Principal fields and relationships |
 | --- | --- |
-| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, required_checkpoint_count (derived from configured checkpoint rows), lifecycle status; optional source provider/event/list identifiers |
+| Race | id, name, race date, timezone, scheduled start time, start gap duration (default 60000 ms), start location, route name, total_distance_m, optional total_elevation_gain_m, required_checkpoint_count (derived from configured checkpoint rows), lifecycle status; optional source provider/event/list identifiers |
 | Rider | id, name, email, optional date of birth or recorded age with reference date; optional stable provider person ID; no sex/gender field |
-| RiderEntry | id, race_id, rider_id, rider number, mandatory age on race day, mandatory category (OPEN or FEMALE), predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
+| RiderEntry | id, race_id, rider_id, rider number, mandatory age on race day, mandatory category (OPEN or FEMALE), predicted duration, planned start order, scheduled start timestamp, handicap duration, source entry ID/status, last imported time |
 | Organiser | id, display name, email |
 | RaceOrganiser | race_id, organiser_id, role/permissions; limits access to the assigned race |
 | RaceCheckpoint | id, race_id, sequence, name, distance_from_start_m (cumulative course distance); zero or more required checkpoint rows, including separate rows for repeated visits to one physical location |
@@ -354,7 +354,7 @@ These additions extend the earlier requirements. They describe intended behaviou
 1. Organiser presses LAP or FINISH; the app immediately records and saves that crossing timestamp.
 2. The app records sound/listens for a rider number for that SPECIFIC capture.
 3. The organiser can say the number, for example “42”, “forty two” or “rider number four two”.
-4. A clear, unique, eligible number is assigned automatically without another confirmation press.
+4. A clear, unique, eligible number is displayed beside that recording with a Confirm button. Only pressing Confirm assigns it and removes it from the pending list; retain it in history.
 5. If nothing is said or the number cannot be interpreted, show the next/active-rider list for manual rider selection.
 6. Whether assigned by voice or manually, the original captured time is unchanged.
 
@@ -365,10 +365,10 @@ These additions extend the earlier requirements. They describe intended behaviou
 - Never associate a late recognition response with the newest capture just because it arrived last.
 - If overlapping speech cannot be associated reliably, retain the affected capture(s) for manual assignment.
 - Do not overwrite a manual assignment or act on a voided capture, another race or a stale station session.
-- Only auto-assign a reliably recognised number that uniquely matches a started, unfinished rider in that race.
+- Only suggest a number matching a started, unfinished eligible rider in that race; revalidate when Confirm is pressed.
 - Silence, ambiguity, low confidence, unknown/ineligible number, duplicate result, microphone denial or speech-service failure leaves the capture available for manual selection.
 - Do not guess from arrival order or list position.
-- The next/active-rider list shows large numbers and names in observed live race order, stays stable during selection and supports number search.
+- The next/active-rider list shows large numbers and names in observed live race order, stays stable during selection. Separate voice/audio search controls are removed.
 - Display the recognised rider and capture time clearly; allow correction through the normal audited reassignment controls.
 - Assignment evidence records manual/voice source and any recognised text/confidence supplied by the engine.
 
@@ -390,7 +390,7 @@ These additions extend the earlier requirements. They describe intended behaviou
 | Unit conversions | Known metric/imperial cases match; repeated switches preserve authoritative values and timing/queue state |
 | Speeds | Tests cover first partial section, repeated laps, final section, total and correction-driven recalculation; handicap has no influence |
 | Unavailable speeds | No fabricated values, infinity or NaN from missing distances, nonpositive durations or beyond-course crossings |
-| Voice success | One timing press followed by a clear eligible number assigns the correct capture without a confirmation tap |
+| Voice success | One timing press records the time; the spoken number proposes the correct rider; Confirm assigns the original capture and moves it to history |
 | Voice fallback | Silence, ambiguity, unknown/ineligible number, unsupported browser, denied microphone and speech/network failure expose manual selection without losing the timestamp |
 | Voice concurrency | Rapid presses and late callbacks do not attach speech to the wrong capture or override manual corrections |
 | Audio association | Replay identifies its original capture and clearly states local/shared availability |
@@ -472,7 +472,7 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 - The closure preview identifies checkpoint name, sequence, cumulative distance and affected riders; it checks checkpoint identities rather than just a crossing count.
 - For a circuit station handling several listed checkpoints, show which configured checkpoint(s) the closure covers. Closing the final/all-checkpoints session checks every required checkpoint, not an inferred lap total.
 - Riders who completed all required checkpoints but lack a finish remain Racing until finish closure.
-- A finish with missing required checkpoint evidence is a review conflict. Preserve the captured finish and resolve the missing capture or status explicitly before confirming results.
+- Missing checkpoint evidence is an informational warning. Preserve and rank a valid finish, permit race closure, and leave missing checkpoint cells unrecorded.
 - On a zero-checkpoint course, there is no checkpoint closure or missing-lap conflict; only finish closure applies.
 
 ### 15.3 Results and audit behaviour
@@ -655,8 +655,40 @@ Confirmed after the organiser completed the feedback list and said “Done”.
 - Race and current-lap timers advance continuously; finish/DNF stops them correctly.
 - Accidental capture can be cleared, skipped by the queue and restored with its original timestamp.
 - Clearing an assigned finish removes FINISHED until a valid finish is restored/reassigned.
-- Checkpoint columns populate in the rider's existing row; the final column changes to FINISHED on finish assignment.
+- Checkpoint columns populate in the rider's existing row; the Last crossing / Finish column changes to FINISHED on finish assignment.
 - Live timer ticks do not recreate/reorder buttons during a touch interaction.
 - Test at narrow phone widths and landscape; retain readable controls and checkpoint access.
 
 | 1.9 mobile UX updates | 24 October 2026 | Mobile capture-first layout, separate live Results, draggable start order, live race/lap clocks, Clear/restore accidental captures and checkpoint columns in one rider row. |
+
+## 21. Mobile beta testing feedback — approved 24 October 2026
+
+This section supersedes earlier conflicting layout, voice and missing-checkpoint rules.
+
+### 21.1 Scheduled starts
+
+- Race setup includes a race start time in the race timezone and an editable gap between starts, default **01:00** (minutes:seconds).
+- Rider list displays handicap and scheduled start time. **Highest handicap first** sorts waiting riders by descending handicap, preserving ties in existing order.
+- Initial schedules and schedules rebuilt after drag/drop or handicap ordering place the first rider at race start and each following rider one configured gap later.
+- Editing a waiting rider’s scheduled time inserts them in chronological start order and resets every rider after them using the configured gap. Earlier riders retain their times. Scheduled time cannot precede race start or riders already processed.
+- Rebuild planned start positions consistently. Recorded actual start timestamps and actual sequence remain independent and unchanged.
+- Start screen shows the next rider’s live countdown. Beep at 30 seconds, 10 seconds, then 5, 4, 3, 2, 1 and the start instant. Provide a countdown sound toggle and enable browser audio through a user gesture.
+- Below the main controls show **Start list** with the next five waiting riders, and **Started riders** with the five most recent actual starters, newest first and with elapsed clocks.
+
+### 21.2 Results and closure
+
+- Default live results place finished riders first by fastest actual elapsed duration, followed by active live road order and other statuses. Adjusted ordering remains selectable.
+- Exact column order: **Rider/status, Place, Race time, Adjusted/place, Last crossing/finish, Handicap, then checkpoint columns**.
+- Finish screen has **Close race**. Confirmation states how many started, unfinished riders are still out (including zero), names them, and explains DNF consequences. Confirm must work with zero or more affected riders.
+- Missing checkpoint times are warnings, not closure blockers or grounds to withhold an otherwise valid finish ranking. Do not invent missed checkpoint times.
+- Pending unassigned non-void captures must still be assigned or explicitly cleared before closing. Preserve race closure, DNF, reopening and correction history. Publishing remains separate.
+
+### 21.3 Audio assignment
+
+- Prominent **Audio ON/OFF** button on Lap and Finish. Audio ON enables listening after every capture for up to five seconds; timestamp capture always comes first.
+- Show each pending recording in newest-first order with its original captured time and recognised text, or a clear no-speech/unsupported message.
+- If text matches an eligible rider number, show the rider and a **Confirm** button. Never auto-assign from speech alone. Confirm removes it from pending and retains the transcript, time, assignment and available local audio in history.
+- When a new capture interrupts listening, retain the earlier capture and any audio/transcript. Late speech callbacks remain attached to their original capture. Ambiguous, silent or failed recognition uses the existing manual rider list.
+- Keep individual Clear, manual batch assignment, Undo and history playback. Remove the old voice/audio search controls.
+
+Acceptance checks: configurable gap; stable descending handicap ties; drag resets; edited-time insertion/cascade; actual capture immutability; countdown thresholds; latest-five lists; fastest finisher above earlier slower finisher; closure with missing laps at both zero and nonzero outstanding riders; three close captures confirmed out of order; no automatic voice assignment; clear/unknown/late speech safety; existing saved races migrate without losing timings.
