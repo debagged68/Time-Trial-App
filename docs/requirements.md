@@ -769,3 +769,13 @@ Results and template CSV downloads include one UTF-8 BOM so Excel can identify U
 ### 23.2 Nonnegative result durations — confirmed
 
 A handicap larger than the actual duration is invalid. Preserve actual duration and actual place; show Check handicap and leave adjusted duration/position blank until corrected. Exclude the rider only from adjusted ranking. Export an explicit validation warning and no negative duration. Do not clamp to zero or change actual timestamps to conceal an invalid handicap. Equal handicap and actual duration may yield an adjusted duration of exactly zero. Provide a post-race Edit handicap action and recalculate on correction. Invalid chronological timing must be corrected rather than shown as a negative lap/race duration.
+
+## 24. Shared speech batches for close riders — Beta 0.6
+
+- Every Lap/Finish press still saves its own timestamp immediately. The first press starts one continuous speech session; further presses at the same checkpoint/station join that batch without stopping/restarting recognition and extend the window to five seconds after the latest press. Limit one window to 30 seconds or 20 captures; subsequent presses start a new batch.
+- Speak numbers in passing order, preferably separated by “then”. Parse multiple digit or spoken numbers conservatively. Pair the first recognised number with the first press, and so on. Keep capture IDs and timestamps immutable.
+- After listening finishes, freeze the batch for review. Show transcript and ordered time/rider suggestions. Require Confirm batch; recognition never assigns automatically. New captures form a separate batch rather than moving frozen suggestions.
+- Count mismatches, ambiguous speech, duplicate numbers, unknown/ineligible riders and captures changed by manual assignment or clear block bulk confirmation. Review riders permits explicit selection for every remaining capture; do not shift surviving numbers over a missing rider.
+- Revalidate the full proposal before an atomic all-or-none confirmation. Preserve transcript, batch identity, capture assignment source and audit history. Cleared/assigned times stay retained. Normal manual selection, Clear and Undo remain available.
+- Recognition keeps exclusive microphone ownership. A later batch waits for release of a closing recogniser; no competing MediaRecorder/getUserMedia stream is added. Existing raw-clip limitations remain.
+- Late callbacks cannot change a frozen/manually reviewed/confirmed batch. Recover interrupted batches as review-required on reload. Browser/network errors preserve all timestamps and expose manual review. Real phone recognition still needs testing.
