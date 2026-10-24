@@ -1,10 +1,10 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.8 — review draft  
+Version: 1.9 — mobile UX updates  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
-Status: awaiting organiser review of the additions below. Further implementation and deployment are paused until that review. No production timing accuracy is claimed.
+Status: baseline requirements approved by the organiser. Mobile UX feedback recorded below is being prototyped for review; no production timing accuracy is claimed.
 
 ## Version 1.1 changes for review
 
@@ -597,3 +597,66 @@ Confirmed organiser requirement: the riders available for batch assignment are l
 | 1.7 review draft | 24 October 2026 | Makes age and category mandatory, adds both to rider lists, restricts category to OPEN/FEMALE and replaces sex/gender across model, imports and results. |
 
 | 1.8 review draft | 24 October 2026 | Orders batch-assignment riders by observed live on-course position, updating start order using checkpoint passing times and preserving safe tap targets. |
+
+## 20. Mobile UX feedback — consolidated changes
+
+Confirmed after the organiser completed the feedback list and said “Done”.
+
+### 20.1 Mobile timing layout
+
+- Optimise for a phone in portrait, with responsive landscape support.
+- Lap/Finish capture button at the top of its screen; selected captured time and riders awaiting assignment directly below.
+- Use large, readable touch targets. Keep demo guidance, voice settings, history and station closure in secondary/collapsible controls.
+- Results is a separate live-results tab. Do not place the full dashboard in the timing/assignment screen.
+- Keep the capture action available without returning from an assignment screen; retain the live-order and batch-advance rules.
+- Review the proposed mobile screens before changing the main race application.
+
+### 20.2 Drag-and-drop rider start order
+
+- Rider list supports dragging a rider by a visible handle to change planned start order.
+- Renumber positions consistently after a drop, preserving unique sequential order.
+- Support touch and pointer use plus accessible keyboard/move controls.
+- Only waiting riders can be freely reordered; preserve recorded starts and actual start order for riders already processed.
+- Start screen automatically reflects revised waiting-rider order.
+
+### 20.3 Live race and lap timers
+
+- Start screen shows live elapsed race time for each started rider, measured from the original start timestamp.
+- Lap/checkpoint screen shows each eligible rider's live current-section/lap elapsed time, measured from start until their first crossing, then from their latest valid checkpoint crossing.
+- Assignment uses the captured crossing timestamp as the timer boundary, never the later assignment time.
+- Timers update without requiring page refresh or rebuilding/reordering active tap targets.
+- Finish freezes elapsed race time at the captured finish; DNS has no live clock. DNF timers stop at the recorded DNF decision, with earlier timing evidence retained.
+- These are elapsed-time displays; their updates must not determine event timestamps.
+
+### 20.4 Clear accidental Lap/Finish captures
+
+- Every pending capture can be cleared as an accidental press without assigning a rider.
+- Remove a cleared capture from the assignment queue and advance appropriately; clearing another capture must not steal the current selection.
+- Mark the record void with original ID/timestamp, prior assignment and audit history retained; no destructive deletion.
+- Provide Undo clear/restore, checking for conflicting valid assignments before restoration.
+- Permit clearing an already assigned incorrect capture through deliberate correction, with clear impact/confirmation. Recalculate rider status, live order, progress, times and results from remaining valid records.
+- Cleared captures do not block station closure or count as checkpoint evidence.
+
+### 20.5 Live results — one row per rider
+
+- Results update live as starts, checkpoint assignments, finishes, voids and corrections occur.
+- Exactly one main table row per rider; checkpoint/lap points are separate ordered columns rather than additional rider rows.
+- Each checkpoint column is labelled with its configured name and distance. Proposed cell presentation: section/split duration with cumulative elapsed-from-start as secondary text; keep definitions explicit.
+- Include a Last crossing / Finish point column showing the latest valid configured point reached.
+- State **FINISHED** when a valid finish capture is assigned; preserve a separate review warning if required checkpoint evidence is missing.
+- Retain actual and adjusted times/positions, speeds, handicap, age/category, DNS/DNF and active race elapsed time.
+- Do not advance a rider's crossing point from an unassigned or voided capture.
+- On mobile, allow horizontal table scrolling with rider identity held visible; preserve all checkpoint columns instead of creating multiple rows per rider.
+- Run live display updates without losing the user's horizontal scroll position, sorting or selected time.
+
+### 20.6 Additional acceptance checks
+
+- Drag/drop changes the next waiting rider while recorded starts stay intact.
+- Race and current-lap timers advance continuously; finish/DNF stops them correctly.
+- Accidental capture can be cleared, skipped by the queue and restored with its original timestamp.
+- Clearing an assigned finish removes FINISHED until a valid finish is restored/reassigned.
+- Checkpoint columns populate in the rider's existing row; the final column changes to FINISHED on finish assignment.
+- Live timer ticks do not recreate/reorder buttons during a touch interaction.
+- Test at narrow phone widths and landscape; retain readable controls and checkpoint access.
+
+| 1.9 mobile UX updates | 24 October 2026 | Mobile capture-first layout, separate live Results, draggable start order, live race/lap clocks, Clear/restore accidental captures and checkpoint columns in one rider row. |
