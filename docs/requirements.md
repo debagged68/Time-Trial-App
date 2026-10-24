@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.1 — review draft  
+Version: 1.2 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -412,9 +412,55 @@ The selected visual direction remains Cycling Computer: dark surfaces, high-cont
 
 This document is the review draft. Further app implementation and deployment are paused until the organiser completes the requested review.
 
-## 14. Revision history
+## 14. Batch assign — agreed default manual workflow
+
+Agreed by the organiser on 24 October 2026. This changes the default manual assignment experience; individual capture selection remains available for corrections. Implementation remains paused for the requested requirements review.
+
+### 14.1 Capture first
+
+- On the separate Lap and Finish screens, press the timing button once per passing rider, including riders arriving close together.
+- Each press immediately saves a separate timestamp and appends it to the unassigned queue.
+- No rider selection or confirmation interrupts capture.
+- The timing button stays visible and usable during all assignment actions.
+
+### 14.2 One-tap batch assignment
+
+- Automatically select the oldest unassigned capture and prominently display its timestamp.
+- Show large rider-number tiles with names underneath.
+- Tapping a rider assigns the selected timestamp immediately, then automatically selects the next unassigned capture.
+- No separate timestamp-selection, Save or confirmation tap is required in the normal sequential workflow.
+- For a group of riders, the organiser taps their numbers in the order they passed.
+- Minimum normal interaction: one timing press plus one rider-number tap per rider.
+- Keep the active-rider list in a stable order while the organiser selects. Any suggested likely-next riders belong in a separate group and must not reorder the main tap targets.
+- Never infer passing order from planned/actual start order or assign a rider automatically from list position.
+
+### 14.3 Exceptions and corrections
+
+- Undo last assignment immediately restores the affected capture to the unassigned queue and restores rider eligibility where appropriate; retain audit history.
+- Assign later leaves an unidentified capture unresolved and advances to another pending capture. Show deferred captures and their count explicitly; they must not disappear or cause a loop back to the skipped capture while advancing through the batch.
+- Permit direct selection of any queued capture when the observed rider order differs from the current assignment order.
+- A later capture must not steal selection from the capture currently being assigned.
+- Lap-assigned riders remain eligible for later crossings; finish-assigned riders leave normal active selection. A deliberate correction can recover a wrong assignment.
+- Switching between batch/manual correction and optional voice must preserve capture IDs, timestamps, pending queue and existing assignments.
+- Once no captures remain to assign, show queue complete and do not interpret rider taps as new timed events.
+
+### 14.4 Acceptance criteria
+
+| Scenario | Expected result |
+| --- | --- |
+| Three riders close together | Three timing presses save three captures; three rider-number taps assign them in sequence without extra taps |
+| Capture during assignment | New time is retained; current selected capture/rider target remains stable |
+| Unknown rider | Assign later preserves that timestamp and allows the rest of the batch to continue |
+| Wrong rider tapped | Undo restores the original time and correct eligibility, with no timestamp change |
+| Out-of-order identification | Organiser can select the intended pending capture directly |
+| Repeated laps | Same rider can receive later lap captures; numbering follows captured timestamps |
+| Finish assignment | Rider is removed from normal eligible finish choices; correction remains possible |
+
+## 15. Revision history
 
 | Version | Date | Change |
 | --- | --- | --- |
 | 1.0 | 14 October 2026 | Initial timing, screens, model, ingestion, handicap and publication requirements; repeated lap checkpoint subsequently clarified |
 | 1.1 review draft | 24 October 2026 | Adds course distances/elevation, named point distance, metric/imperial units, lap/total speed and optional audio/voice assignment with manual fallback |
+
+| 1.2 review draft | 24 October 2026 | Agreed Batch assign as default manual workflow: oldest capture selected automatically, one-tap rider assignment and advance, Undo, Assign later and individual correction. |
