@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.7 — review draft  
+Version: 1.8 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -368,7 +368,7 @@ These additions extend the earlier requirements. They describe intended behaviou
 - Only auto-assign a reliably recognised number that uniquely matches a started, unfinished rider in that race.
 - Silence, ambiguity, low confidence, unknown/ineligible number, duplicate result, microphone denial or speech-service failure leaves the capture available for manual selection.
 - Do not guess from arrival order or list position.
-- The next/active-rider list shows large numbers and names, stays stable during selection and supports number search.
+- The next/active-rider list shows large numbers and names in observed live race order, stays stable during selection and supports number search.
 - Display the recognised rider and capture time clearly; allow correction through the normal audited reassignment controls.
 - Assignment evidence records manual/voice source and any recognised text/confidence supplied by the engine.
 
@@ -424,7 +424,7 @@ Agreed by the organiser on 24 October 2026. This changes the default manual assi
 - No separate timestamp-selection, Save or confirmation tap is required in the normal sequential workflow.
 - For a group of riders, the organiser taps their numbers in the order they passed.
 - Minimum normal interaction: one timing press plus one rider-number tap per rider.
-- Keep the active-rider list in a stable order while the organiser selects. Any suggested likely-next riders belong in a separate group and must not reorder the main tap targets.
+- Order eligible riders by observed live on-course position, initially actual start order and then checkpoint passing order as overtakes are recorded. Update between assignments; keep tap targets stable during an interaction. See section 18.
 - Never infer passing order from planned/actual start order or assign a rider automatically from list position.
 
 ### 14.3 Exceptions and corrections
@@ -532,7 +532,52 @@ Confirmed organiser requirement: the rider-list screen includes **Age** and **Ca
 
 Acceptance: blank age, fractional/negative age, blank category and any category outside OPEN/FEMALE are rejected; correct age/category appear in rider lists and exports; no automatic demographic inference occurs.
 
-## 18. Revision history
+## 18. Batch assignment ordered by live on-course position
+
+Confirmed organiser requirement: the riders available for batch assignment are listed in their LIVE POSITION ON THE COURSE, rather than permanently in start order. Slower riders often start first; later, faster riders may overtake them.
+
+### 18.1 Meaning of live order
+
+- Live position means observed physical/passing order in the race. It is distinct from fastest elapsed-time position, handicap-adjusted position, category position and planned start position.
+- Before checkpoint observations exist, initialise the list from actual start order; use planned order only for riders awaiting a start. Only eligible started, unfinished riders appear in the normal assignment list.
+- Update the live order when checkpoint captures are assigned: use the riders' captured crossing times at the configured checkpoint, not assignment time.
+- Example: #42 starts before #17. Initial order is #42, #17. At checkpoint 1, #17 crosses at 14:10:00.0 and #42 at 14:10:02.0. Once assigned, show #17 ahead of #42 for subsequent checkpoint/finish assignment.
+- A later assignment of an earlier crossing must cause the correct order to be recalculated. Corrections, reassignments and voided captures must also recalculate it.
+
+### 18.2 Course progress and observations
+
+- Use configured checkpoint sequence/cumulative distance to distinguish progress. An observed later course checkpoint represents greater confirmed progress than an earlier one.
+- Among riders at the same latest checkpoint, earlier crossing time is ahead. When a rider's next crossing confirms they have caught/passed another rider, update their observed relative order.
+- Unobserved riders keep their last known order until newer evidence supports changing it; a missing/pending capture must not be treated as proof of an overtake.
+- Never compare raw times from different checkpoint locations as if they were the same crossing, or rank road position by elapsed start-to-checkpoint duration.
+- With no checkpoints, start order is the only known order before finish observations. Do not imply continuous tracking or knowledge of an unseen overtake.
+- Equal displayed crossing times and unresolved observations use the prior known order as a stable tie-break, flagged as uncertain where relevant.
+- The list is a useful last-observed ordering, not a guarantee of current GPS position. Manual rider selection remains authoritative.
+
+### 18.3 Interaction
+
+- Present the main batch-assignment rider list/tiles in this live order, with prominent rider numbers and names; age/category remain available as secondary information.
+- Keep one-tap assignment and automatic advance to the next queued time.
+- Apply ordering updates BETWEEN completed assignments or selection actions, never moving a target during pointer/touch contact.
+- A new capture arriving while the organiser is choosing must not replace the selected capture or abruptly move its rider target.
+- Riders may still be selected out of the suggested order. Never auto-assign merely because a rider is first in the list.
+- Finish-assigned, DNF and withdrawn riders leave normal eligible choices; lap/checkpoint-assigned riders remain eligible for later required checkpoints.
+- Optional voice matching checks eligibility and rider number independently of the displayed list order.
+
+### 18.4 Acceptance examples
+
+| Scenario | Expected order/behaviour |
+| --- | --- |
+| Slow rider starts first | Initial list follows actual start order |
+| Later starter crosses checkpoint first | Once passing times are assigned, later starter moves ahead in live order |
+| Times assigned out of sequence | Rebuild order from captured times, not assignment sequence |
+| Missing/unassigned observation | Retain last confirmed order without declaring a speculative overtake |
+| Same physical circuit point, different configured visits | Compare course progress using checkpoint IDs/sequence and cumulative distance |
+| No checkpoints | Retain last known start order until finish evidence; no invented intermediate positions |
+| Timing correction or Undo | Recalculate observed order from retained valid evidence |
+| Active tap/new capture | Selected capture and rider tap target remain stable |
+
+## 19. Revision history
 
 | Version | Date | Change |
 | --- | --- | --- |
@@ -550,3 +595,5 @@ Acceptance: blank age, fractional/negative age, blank category and any category 
 | 1.6 review draft | 24 October 2026 | Replaces required checkpoint-pass/circuit configuration with an ordered required-checkpoint list; names and cumulative distances are entered for every crossing, including repeated circuit visits. Updates model, speeds and DNF identity checks. |
 
 | 1.7 review draft | 24 October 2026 | Makes age and category mandatory, adds both to rider lists, restricts category to OPEN/FEMALE and replaces sex/gender across model, imports and results. |
+
+| 1.8 review draft | 24 October 2026 | Orders batch-assignment riders by observed live on-course position, updating start order using checkpoint passing times and preserving safe tap targets. |
