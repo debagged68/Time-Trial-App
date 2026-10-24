@@ -765,3 +765,7 @@ Acceptance checks: mixed draggable gap positions; compact controls; auto-scroll;
 ### 23.1 Excel-compatible CSV encoding — Beta 0.5.1
 
 Results and template CSV downloads include one UTF-8 BOM so Excel can identify Unicode text. Export durations use the plain ASCII minus (-), missing durations are empty fields, and names/checkpoint labels retain Unicode accents. Preserve actual-place ordering, original calculation values, quoted-field escaping and CRLF rows. Regression checks inspect downloaded bytes and cover negative adjusted durations, DNS/missing times and accented rider names.
+
+### 23.2 Nonnegative result durations — confirmed
+
+A handicap larger than the actual duration is invalid. Preserve actual duration and actual place; show Check handicap and leave adjusted duration/position blank until corrected. Exclude the rider only from adjusted ranking. Export an explicit validation warning and no negative duration. Do not clamp to zero or change actual timestamps to conceal an invalid handicap. Equal handicap and actual duration may yield an adjusted duration of exactly zero. Provide a post-race Edit handicap action and recalculate on correction. Invalid chronological timing must be corrected rather than shown as a negative lap/race duration.
