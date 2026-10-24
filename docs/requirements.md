@@ -761,3 +761,7 @@ Acceptance: old race migration retains timestamps; course reuse leaves prior sna
 - Recognition and device audibility still require a real-phone retest. Automated microphone lifecycle tests are not proof of phone recognition quality.
 
 Acceptance checks: mixed draggable gap positions; compact controls; auto-scroll; both timing screens' waiting order; real browser autostart at zero; missed/hidden/overdue cancellation; one automatic event; post-close start/finish/lap corrections; retained originals and chronological rejection; start column; exported actual-place order; Audio ON with no competing stream/recorder and safely serialised speech sessions.
+
+### 23.1 Excel-compatible CSV encoding — Beta 0.5.1
+
+Results and template CSV downloads include one UTF-8 BOM so Excel can identify Unicode text. Export durations use the plain ASCII minus (-), missing durations are empty fields, and names/checkpoint labels retain Unicode accents. Preserve actual-place ordering, original calculation values, quoted-field escaping and CRLF rows. Regression checks inspect downloaded bytes and cover negative adjusted durations, DNS/missing times and accented rider names.
