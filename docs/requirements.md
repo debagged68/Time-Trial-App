@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.11 — courses, race officials and mobile test feedback  
+Version: 1.12 — start-list gaps, autostart and post-race correction  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -725,3 +725,39 @@ This section supersedes earlier combined course/race setup and closure eligibili
 - Device-specific microphone/speech testing remains required. Do not claim the reported phone issue fixed without observing successful speech on that phone.
 
 Acceptance: old race migration retains timestamps; course reuse leaves prior snapshots unchanged; default rounding handles midnight; TIME GAP inserts extra standard duration; removal confirms and archives; override rounds up without altering actual captures; closure counts and applies both DNF/DNS; speech failures show actionable diagnostics and manual fallback.
+
+## 23. Approved next-iteration feedback — Beta 0.5
+
+### Simpler names, list and edit behaviour
+
+- Course setup keeps one **Course name**, removing the duplicate Route name field. Course identifier remains.
+- Whenever Edit or a correction dialog opens, automatically scroll to the top/dialog so it is visible from a long roster.
+- Rider-row Edit and Remove controls appear side by side for compact rows.
+- Provide one **+ Time Gap** control at the top of Riders. Each tap appends a TIME GAP row, defaulting to the standard race gap. Every gap has a drag handle and Remove. Repeated taps add independent gaps.
+- Riders and gaps form a single ordered start list. Moving either recalculates subsequent scheduled starts. Gaps may be leading, intermediate or trailing. Preserve the processed prefix and actual timing evidence; never move a processed rider or a gap into that locked prefix.
+- Lap and Finish retain active riders and add a separate **Yet to start** list below the closure control, sorted by scheduled start order.
+
+### Start modes and autostart
+
+- The Start-screen mode button cycles **Countdown sound ON → Autostart on / sound ON → Countdown sound OFF**.
+- Autostart is armed only from a positive countdown. Disable/grey the manual Start button while armed; fill it green left to right over the final ten seconds.
+- At zero, create one start for the scheduled rider and advance. Store the scheduled automatic timestamp plus actual trigger time/lateness and clock evidence. Preserve one-button manual input capture unchanged in manual modes.
+- Overdue riders use manual Start. Do not invent catch-up starts after a backgrounded app, missed deadline, changed race/rider/schedule or cancelled arm. The beta accepts at most 100 ms timer lateness; otherwise it requests manual start. This does not establish cross-device accuracy.
+- Cancel or revalidate the arm on station/navigation changes, backgrounding, closure, changes of mode and schedule. Autostart requires an explicit mode choice for the browser session rather than silently rearming on reload.
+
+### Corrections and results
+
+- After race closure, permit correction of existing assigned Start, checkpoint/lap and Finish timestamps without reopening the race.
+- Retain original timestamps, clock evidence and per-capture before/after values, reason and correction time. Require a reason and valid Start → recorded checkpoints → Finish chronological order.
+- Start/finish corrections recalculate race duration, adjusted duration, speed, actual/adjusted positions and crossing sequence. Checkpoint corrections recalculate affected splits/cumulative durations/speeds; they do not change start-to-finish duration.
+- Add **Start time** immediately before Race time in Results. Other agreed column ordering remains intact.
+- Export results CSV in **actual place order**, fastest actual finishers first regardless of current dashboard sort; preserve other statuses afterwards. Include actual start timestamp and use corrected values.
+
+### Speech correction and current beta limitation
+
+- The phone test works with Audio OFF but fails with Audio ON. Code inspection found an app-held microphone stream plus a separate browser recognition microphone. Remove that competing ownership.
+- In Beta 0.5, Audio ON gives recognition exclusive microphone access. Do not open a parallel getUserMedia stream or MediaRecorder. Serialise recognisers across quick captures, retain late text against its original capture and keep explicit rider confirmation.
+- Preserve transcript, errors, manual/keyboard-dictation fallback and previous stored clips. The beta speech-only path does **not** create new replayable raw-audio clips; disclose this in the UI. A reliable single audio-capture/transcription pipeline remains needed to restore simultaneous raw-clip archiving across phones.
+- Recognition and device audibility still require a real-phone retest. Automated microphone lifecycle tests are not proof of phone recognition quality.
+
+Acceptance checks: mixed draggable gap positions; compact controls; auto-scroll; both timing screens' waiting order; real browser autostart at zero; missed/hidden/overdue cancellation; one automatic event; post-close start/finish/lap corrections; retained originals and chronological rejection; start column; exported actual-place order; Audio ON with no competing stream/recorder and safely serialised speech sessions.
