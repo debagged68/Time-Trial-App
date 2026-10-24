@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.3 — review draft  
+Version: 1.4 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -145,7 +145,7 @@ All records have stable unique IDs. Event records carry creation time and respon
 
 | Entity | Principal fields and relationships |
 | --- | --- |
-| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, circuit_distance_m, lifecycle status; optional source provider/event/list identifiers |
+| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, circuit_distance_m, required_lap_crossings (positive integer checkpoint-pass count, excluding separate finish), lifecycle status; optional source provider/event/list identifiers |
 | Rider | id, name, gender, email, optional date of birth or recorded age with reference date; optional stable provider person ID |
 | RiderEntry | id, race_id, rider_id, rider number, age on race day, predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
 | Organiser | id, display name, email |
@@ -475,10 +475,13 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 - Only riders who actually started and remain unfinished can be newly marked DNF.
 - Exclude waiting/not-started riders, DNS riders, valid finishers and riders already DNF or withdrawn.
 - At Finish: mark eligible riders with no valid assigned finish capture DNF.
-- At Lap: mark eligible riders with no valid assigned crossing at that lap point DNF.
-- Because the same lap point is passed repeatedly, riders who have crossed it at least once are NOT automatically DNF merely because the station closes. If a required number of crossings is configured, use that requirement to identify missing later laps and show it in the preview.
-- Do not infer the required number of laps from elapsed time, rider arrival order or an arbitrary sample dataset.
-- Review choice: whether lap closure should require completion of a specified final lap/crossing, rather than at least one crossing. Planned required crossings must be configured explicitly for that rule.
+- At Lap: mark eligible riders DNF when their number of valid assigned crossings at that point is LESS THAN the required crossing count, even if they passed the checkpoint on earlier laps.
+- Race setup MUST include a positive integer required_lap_crossings: how many times each rider must pass the single lap checkpoint before finishing. Explain this as required checkpoint passes to avoid ambiguity about whether the final finish-line crossing counts.
+- The separate finish crossing does NOT increment the lap-checkpoint count. Example: required_lap_crossings = 3 means three recorded checkpoint passes plus a separate finish capture.
+- Require this count before the race is ready; lap closure is blocked if it is missing or invalid. Show each affected rider's completed/required count in the closure preview.
+- Preserve required crossing count with the closure snapshot and audit changes to it. Do not infer it from elapsed time, rider arrival order or a sample dataset.
+- A rider who completed the required checkpoint passes but has no finish remains Racing after lap-point closure; finish-point closure can subsequently mark them DNF.
+- A finish recorded against an incomplete required crossing count is a review conflict. Exclude it from confirmed publication until missing captures or the finish/status discrepancy are resolved; do not silently erase the finish capture.
 
 ### 15.3 Results and audit behaviour
 
@@ -501,7 +504,9 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 ### 15.5 Acceptance criteria
 
 - Closing Finish marks only started, unfinished riders lacking a finish as DNF.
-- Closing Lap checks that point's assigned crossings, using an explicit required-crossing count if configured.
+- Closing Lap marks started, unfinished riders DNF if valid checkpoint passes are below required_lap_crossings, including riders who completed earlier laps.
+- With three required checkpoint passes, a rider with two is DNF at lap closure; a rider with three and no finish remains Racing until finish closure.
+- Missing/invalid required crossing count blocks lap closure; a separate finish never counts as a checkpoint pass.
 - DNS, waiting, withdrawn, already-DNF and valid finished riders are not incorrectly reclassified.
 - Outstanding captures/conflicts prevent premature closure and remain available for assignment.
 - Counts and eligible riders are rechecked immediately before applying closure.
@@ -518,3 +523,5 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 | 1.2 review draft | 24 October 2026 | Agreed Batch assign as default manual workflow: oldest capture selected automatically, one-tap rider assignment and advance, Undo, Assign later and individual correction. |
 
 | 1.3 review draft | 24 October 2026 | Adds lap/finish Close controls, bulk DNF eligibility and preview, unresolved-capture checks, status/closure audit records and correction behaviour. |
+
+| 1.4 review draft | 24 October 2026 | Confirms DNF at lap closure for incomplete required checkpoint passes; makes required_lap_crossings mandatory in race setup and distinguishes it from the separate finish. |
