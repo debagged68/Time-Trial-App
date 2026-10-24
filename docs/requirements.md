@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.6 — review draft  
+Version: 1.7 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -35,7 +35,7 @@ Each device is assigned a race and station/role. Start, Lap and Finish MUST be s
 
 A race stores name, date, timezone, start location, route name, total distance and optional total elevation gain (interpretation for review). The organiser configures timing stations and registers/imports riders before racing.
 
-Riders are reusable people; rider entries are their participation in a particular race. Each entry stores race number, age on race day, predicted completion duration, planned start order and handicap duration.
+Riders are reusable people; rider entries are their participation in a particular race. Each entry stores race number, mandatory age on race day, mandatory category (OPEN or FEMALE), predicted completion duration, planned start order and handicap duration.
 
 The organiser can enter/edit planned start order, predicted duration and handicap before racing. Handicap input is minutes and seconds, with seconds restricted to 00–59. No handicap means 00:00. Predicted duration and handicap are distinct fields.
 
@@ -96,7 +96,7 @@ Provide these complementary table views:
 - Results: actual position, rider, actual duration, finish clock time/crossing sequence, handicap, adjusted duration, adjusted position, prediction, prediction difference and total average speed.
 - Lap comparison: rider/status, each lap or split distance, duration and average speed, plus total duration and total average speed, with access to raw crossing timestamps.
 
-Expose rider details including gender and race-day age where needed. Support sorting by planned/actual start order, finish clock time/crossing sequence, actual duration/position and adjusted duration/position. Keep waiting, DNS, DNF and withdrawn riders visible in appropriate operational views; do not rank them as finishers.
+Show mandatory age on race day and category (OPEN or FEMALE) on the rider-list screen and in relevant dashboard details. Support sorting by planned/actual start order, finish clock time/crossing sequence, actual duration/position and adjusted duration/position. Keep waiting, DNS, DNF and withdrawn riders visible in appropriate operational views; do not rank them as finishers.
 
 Portrait: compact table with rider number/name, status and elapsed time; tapping a row expands start, lap distances/durations/speeds, finish, overall speed, handicap and prediction details.
 
@@ -146,8 +146,8 @@ All records have stable unique IDs. Event records carry creation time and respon
 | Entity | Principal fields and relationships |
 | --- | --- |
 | Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, required_checkpoint_count (derived from configured checkpoint rows), lifecycle status; optional source provider/event/list identifiers |
-| Rider | id, name, gender, email, optional date of birth or recorded age with reference date; optional stable provider person ID |
-| RiderEntry | id, race_id, rider_id, rider number, age on race day, predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
+| Rider | id, name, email, optional date of birth or recorded age with reference date; optional stable provider person ID; no sex/gender field |
+| RiderEntry | id, race_id, rider_id, rider number, mandatory age on race day, mandatory category (OPEN or FEMALE), predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
 | Organiser | id, display name, email |
 | RaceOrganiser | race_id, organiser_id, role/permissions; limits access to the assigned race |
 | RaceCheckpoint | id, race_id, sequence, name, distance_from_start_m (cumulative course distance); zero or more required checkpoint rows, including separate rows for repeated visits to one physical location |
@@ -195,8 +195,8 @@ Support organiser upload in the app with column mapping, preview, validation and
 | --- | --- |
 | Rider name | Required |
 | Rider number | Required; unique in race |
-| Gender | Optional |
-| Age or date of birth | Optional; validate and calculate/snapshot race-day age where possible |
+| Category | Required; exactly OPEN or FEMALE; replaces sex/gender |
+| Age or date of birth | Required input sufficient to establish age on race day; validate and preserve mandatory race-day age |
 | Rider email | Supported; validate; missing addresses shown before publishing |
 | Predicted duration | Optional; editable later |
 | Planned start order | Optional; assign/edit later |
@@ -227,7 +227,7 @@ On publication:
 
 Keep recipient addresses private. Deduplicate identical addresses within a publication. Exclude emails and unrelated personal/contact details from the results CSV.
 
-CSV includes race name/date/start location/route, rider number/name, gender and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Also include total distance, optional elevation, each checkpoint ID/sequence/name/cumulative distance, section distances/speeds and overall average speed. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps. Audio and transcripts are excluded from rider-facing results.
+CSV includes race name/date/start location/route, rider number/name, category and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Also include total distance, optional elevation, each checkpoint ID/sequence/name/cumulative distance, section distances/speeds and overall average speed. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps. Audio and transcripts are excluded from rider-facing results.
 
 Missing-email riders still remain in the results. Publication must clearly report recipients skipped due to missing/invalid addresses. Email queued/sent status must not be described as proof of inbox delivery.
 
@@ -514,7 +514,25 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 - During capture/assignment, make checkpoint context clear. If one physical station serves multiple configured crossings, distinguish which checkpoint a captured rider time belongs to; do not silently assume that a missing earlier capture means the current crossing is the earlier checkpoint.
 - Verify both Start/Finish-only and multi-checkpoint/circuit courses in UX review before app deployment.
 
-## 17. Revision history
+## 17. Mandatory rider age and race category
+
+Confirmed organiser requirement: the rider-list screen includes **Age** and **Category**, both mandatory. Category replaces sex/gender throughout the app.
+
+- Display rider number, name, age on race day and category in the rider list. Keep these readable in portrait and landscape; use a compact second line where needed rather than hiding mandatory fields.
+- Category is a controlled selection with exactly **OPEN** and **FEMALE**. It is a competition classification, not a stored assertion of sex or gender.
+- Do not retain separate sex/gender fields in the target model, entry forms, imports, results or exports.
+- Category belongs to RiderEntry as a race-specific classification. Rider remains a reusable identity; age on race day is also preserved on RiderEntry.
+- Require an explicit category selection; do not silently default to OPEN or infer FEMALE from a name or legacy sex/gender value.
+- Require a valid whole-number age on race day. The organiser may supply that age directly, or a date of birth from which race-day age is calculated. Date of birth remains optional and private.
+- CSV import requires category and either valid race-day age or a usable date of birth. Missing/invalid values are shown as row-level errors before import.
+- Validate RiderHQ mappings against the same rules. A source sex/gender field is not a substitute for a confirmed competition category.
+- Replace sex/gender with category in results CSVs, dashboard details and publication. Keep age on race day.
+- Existing incomplete records and synthetic fixtures must be explicitly completed/remapped; preserve timings and identity links, flag invalid entries and do not invent personal data.
+- In rapid timing assignment, retain prominent rider-number tiles and names; age/category can appear as compact secondary information without adding assignment taps.
+
+Acceptance: blank age, fractional/negative age, blank category and any category outside OPEN/FEMALE are rejected; correct age/category appear in rider lists and exports; no automatic demographic inference occurs.
+
+## 18. Revision history
 
 | Version | Date | Change |
 | --- | --- | --- |
@@ -530,3 +548,5 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 | 1.5 review draft | 24 October 2026 | Confirms zero lap checkpoints are supported: Start/Finish-only setup and navigation, optional lap fields, overall speed and finish-only DNF closure. |
 
 | 1.6 review draft | 24 October 2026 | Replaces required checkpoint-pass/circuit configuration with an ordered required-checkpoint list; names and cumulative distances are entered for every crossing, including repeated circuit visits. Updates model, speeds and DNF identity checks. |
+
+| 1.7 review draft | 24 October 2026 | Makes age and category mandatory, adds both to rider lists, restricts category to OPEN/FEMALE and replaces sex/gender across model, imports and results. |
