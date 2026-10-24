@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.2 — review draft  
+Version: 1.3 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -456,7 +456,59 @@ Agreed by the organiser on 24 October 2026. This changes the default manual assi
 | Repeated laps | Same rider can receive later lap captures; numbering follows captured timestamps |
 | Finish assignment | Rider is removed from normal eligible finish choices; correction remains possible |
 
-## 15. Revision history
+## 15. Close checkpoint and mark Did Not Finish (DNF)
+
+Agreed organiser requirement: the organiser at the lap point or finish point can press a Close button to identify riders who have not passed that point and mark them DNF.
+
+### 15.1 Controls and workflow
+
+- Provide a clearly labelled **Close lap point** button on the Lap screen and **Close finish point** on the Finish screen.
+- Closing is a station-management action, separate from the large timing capture button.
+- Show a preview of affected rider numbers/names and a count. One explicit confirmation applies DNF to the listed riders and closes that station.
+- Recheck eligibility when confirming so a crossing recorded by another device since the preview is not ignored.
+- Do not close while that station has unassigned captures or known unsynchronised/conflicted timing records. Explain what needs resolution first. A disconnected station cannot claim a final shared closure.
+- Once closed, show station closed clearly and disable normal timing at that station until an authorised organiser reopens it.
+- Closing one station does not automatically close the other stations or publish results.
+
+### 15.2 Who receives DNF
+
+- Only riders who actually started and remain unfinished can be newly marked DNF.
+- Exclude waiting/not-started riders, DNS riders, valid finishers and riders already DNF or withdrawn.
+- At Finish: mark eligible riders with no valid assigned finish capture DNF.
+- At Lap: mark eligible riders with no valid assigned crossing at that lap point DNF.
+- Because the same lap point is passed repeatedly, riders who have crossed it at least once are NOT automatically DNF merely because the station closes. If a required number of crossings is configured, use that requirement to identify missing later laps and show it in the preview.
+- Do not infer the required number of laps from elapsed time, rider arrival order or an arbitrary sample dataset.
+- Review choice: whether lap closure should require completion of a specified final lap/crossing, rather than at least one crossing. Planned required crossings must be configured explicitly for that rule.
+
+### 15.3 Results and audit behaviour
+
+- Record DNF as a rider-entry status event, with race, closing station, organiser, closure time and reason such as “Finish closed — no finish recorded” or “Lap point closed — no crossing recorded”.
+- Retain actual start and any existing lap timestamps, split durations, distances and speeds.
+- Do not manufacture a finish timestamp or total completed-race duration.
+- Display DNF prominently in operational tables and published CSV/results; exclude DNF riders from actual and handicap-adjusted finisher rankings.
+- Keep individual DNF available as a deliberate manual status action, for example when a rider reports retirement before station closure.
+- Reopening a station does not silently erase DNF decisions. An authorised organiser can reverse/correct an erroneous DNF with retained history, then resolve any newly recorded crossing/finish explicitly.
+- Any finish/status conflict, including a late synchronised finish, must be reviewed rather than silently overwriting either record.
+- Bulk closure is idempotent: retries do not create duplicate closure or DNF events.
+
+### 15.4 Data model addition
+
+| Record | Fields |
+| --- | --- |
+| StationClosure | id, race_id, station_id, optional lap_point_id/required crossing count, closed_by, closed_at, affected rider-entry IDs, state closed/reopened, reopening organiser/time/reason |
+| RiderStatusEvent extension | optional closure_id and station_id; DNF reason and reversal/correction history |
+
+### 15.5 Acceptance criteria
+
+- Closing Finish marks only started, unfinished riders lacking a finish as DNF.
+- Closing Lap checks that point's assigned crossings, using an explicit required-crossing count if configured.
+- DNS, waiting, withdrawn, already-DNF and valid finished riders are not incorrectly reclassified.
+- Outstanding captures/conflicts prevent premature closure and remain available for assignment.
+- Counts and eligible riders are rechecked immediately before applying closure.
+- DNF riders retain timing history and appear as DNF without finisher positions.
+- Closure retries and reopening/correction preserve a complete audit trail.
+
+## 16. Revision history
 
 | Version | Date | Change |
 | --- | --- | --- |
@@ -464,3 +516,5 @@ Agreed by the organiser on 24 October 2026. This changes the default manual assi
 | 1.1 review draft | 24 October 2026 | Adds course distances/elevation, named point distance, metric/imperial units, lap/total speed and optional audio/voice assignment with manual fallback |
 
 | 1.2 review draft | 24 October 2026 | Agreed Batch assign as default manual workflow: oldest capture selected automatically, one-tap rider assignment and advance, Undo, Assign later and individual correction. |
+
+| 1.3 review draft | 24 October 2026 | Adds lap/finish Close controls, bulk DNF eligibility and preview, unresolved-capture checks, status/closure audit records and correction behaviour. |
