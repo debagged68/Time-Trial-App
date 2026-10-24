@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.5 — review draft  
+Version: 1.6 — review draft  
 Original baseline: 14 October 2026  
 Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -63,7 +63,7 @@ At the end of the list, show that all riders have been processed and disable sta
 
 ### 4.2 Lap screen
 
-A dedicated Lap screen has a large LAP — CAPTURE TIME button. A race may have no lap checkpoint (Start and Finish only), or one lap checkpoint crossed repeatedly on successive laps. The Lap screen exists only when a checkpoint is enabled. Identify this device's station prominently; station configuration is outside the rapid capture path.
+A dedicated Checkpoint (Lap) screen has a large LAP — CAPTURE TIME button. A race has zero or more configured required checkpoints. The screen is hidden for Start-and-Finish-only races. Identify the checkpoint being timed prominently; station configuration is outside the rapid capture path. Repeated visits to the same physical location are separate configured checkpoints.
 
 Each press saves a separate timestamp BEFORE rider selection. Multiple unassigned captures may accumulate. Show a numbered queue, oldest first, with captured clock time and assignment state.
 
@@ -137,7 +137,7 @@ All comparable results display to tenths. Equal displayed durations share a posi
 
 Negative durations, finishes before starts, duplicate valid starts/finishes and impossible crossing order are review errors. A handicap producing a negative adjusted duration is flagged for review; never silently clamp it.
 
-Confirmed course options: Start and Finish only, with no lap checkpoints; OR one repeated lap checkpoint with separate Start and Finish stations. Assign lap numbers by captured crossing timestamp, not assignment order.
+Confirmed course options: Start and Finish only, or an ordered list of required checkpoints between them. Enter repeated circuit visits as separate checkpoints with cumulative distances from the start. Match captures to checkpoint IDs and captured timestamps, never to the order of rider assignment.
 
 ## 6. Logical data model
 
@@ -145,18 +145,18 @@ All records have stable unique IDs. Event records carry creation time and respon
 
 | Entity | Principal fields and relationships |
 | --- | --- |
-| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, optional circuit_distance_m, lap_checkpoint_enabled, required_lap_crossings (zero without a checkpoint; positive integer checkpoint-pass count when enabled, excluding separate finish), lifecycle status; optional source provider/event/list identifiers |
+| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, required_checkpoint_count (derived from configured checkpoint rows), lifecycle status; optional source provider/event/list identifiers |
 | Rider | id, name, gender, email, optional date of birth or recorded age with reference date; optional stable provider person ID |
 | RiderEntry | id, race_id, rider_id, rider number, age on race day, predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
 | Organiser | id, display name, email |
 | RaceOrganiser | race_id, organiser_id, role/permissions; limits access to the assigned race |
-| RaceLapPoint | id, race_id, name, distance_from_start_m for first crossing; zero or one repeated physical lap checkpoint in current scope |
-| TimingStation | id, race_id, name, type Start/Lap/Finish, optional lap_point_id; devices reference the same physical point |
+| RaceCheckpoint | id, race_id, sequence, name, distance_from_start_m (cumulative course distance); zero or more required checkpoint rows, including separate rows for repeated visits to one physical location |
+| TimingStation | id, race_id, name, type Start/Lap/Finish, checkpoint_id or checkpoint references; physical station/device is distinct from a required course crossing |
 | UnitPreference | organiser and/or device reference, metric/imperial selection; storage scope proposed for review |
 | CaptureAudio | id, timing_capture_id, race/station/session reference, recording start/end, MIME type, audio reference/local device reference, availability and retention status |
 | AssignmentEvidence | capture_id, source manual/voice, optional recognised text/confidence, recognition outcome, assigned entry, organiser and timestamp |
 | DeviceSession | id, organiser_id, station_id, device/session identifier, readiness and clock synchronisation records |
-| TimingCapture | id generated on device, race_id, station_id, session_id, event type, original timestamp/timebase, synchronised race timestamp, offset/uncertainty reference, capture sequence, nullable rider_entry_id, assignment/void state, server receipt time |
+| TimingCapture | id generated on device, race_id, station_id, session_id, event type, original timestamp/timebase, synchronised race timestamp, offset/uncertainty reference, capture sequence, nullable rider_entry_id, assignment/void state, server receipt time, checkpoint_id for checkpoint captures |
 | RiderStatusEvent | id, rider_entry_id, DNS/DNS reversed/DNF/withdrawn event, reason, organiser/session, timestamp |
 | CorrectionHistory | id, affected record, original value, revised value, reason, organiser, timestamp; retains original evidence |
 | IntegrationConnection | id, provider, organiser/account scope, secure authorisation reference, connection status |
@@ -227,7 +227,7 @@ On publication:
 
 Keep recipient addresses private. Deduplicate identical addresses within a publication. Exclude emails and unrelated personal/contact details from the results CSV.
 
-CSV includes race name/date/start location/route, rider number/name, gender and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Also include total distance, optional elevation, checkpoint name/distance, circuit distance, lap distances/speeds and overall average speed. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps. Audio and transcripts are excluded from rider-facing results.
+CSV includes race name/date/start location/route, rider number/name, gender and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Also include total distance, optional elevation, each checkpoint ID/sequence/name/cumulative distance, section distances/speeds and overall average speed. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps. Audio and transcripts are excluded from rider-facing results.
 
 Missing-email riders still remain in the results. Publication must clearly report recipients skipped due to missing/invalid addresses. Email queued/sent status must not be described as proof of inbox delivery.
 
@@ -297,25 +297,18 @@ Research establishes available documentation, not a confirmed API integration ag
 
 These additions extend the earlier requirements. They describe intended behaviour, not features verified in the deployed test app. The organiser has requested review BEFORE further app work.
 
-### 13.1 Course data
+### 13.1 Course data and required checkpoint list
 
-**User requirements**
-- Race data includes total race distance and optionally total elevation.
-- Lap points have names and distances from the start.
-- Current race format remains ONE physical lap checkpoint, crossed repeatedly on successive laps, with separate Start and Finish stations.
-- Course information must be editable within race setup, retained with the race and usable for automatic dashboard speed calculations.
-
-**Proposed modelling details for review**
-- Interpret total elevation as total elevation gain/ascent, rather than altitude above sea level. Blank means unknown/not supplied; zero means known zero ascent.
-- Store authoritative distances and elevation in metres, independently of display units.
-- Store first-pass distance from the start on the named lap point.
-- When a lap checkpoint is enabled, store circuit distance between repeated passes. This is needed to calculate later crossing distances without assuming every lap begins at the start line. It is not required for a Start-and-Finish-only course.
-- Cumulative distance at crossing n = first-pass distance + (n - 1) × circuit distance.
-- Remaining distance to finish = total race distance - cumulative distance at the final recorded lap.
-- Example: first pass 4 km, circuit 5 km, total 16 km. Passes are at 4, 9 and 14 km; final section to finish is 2 km.
-- Validate positive total/circuit distances, nonblank point name, first-pass distance between start and finish, and optional nonnegative elevation gain.
-- Flag crossings beyond the configured total distance. Preserve their timing captures; show unavailable/invalid distances and speeds instead of inventing values.
-- Audit distance changes and recalculate provisional speeds; never alter original timestamps or silently change a published snapshot.
+- Race data includes total distance, optional total elevation gain/ascent, and **Required checkpoints**.
+- Set Required checkpoints to zero for a Start-and-Finish-only course.
+- Setting N required checkpoints provides N ordered rows, each containing checkpoint name and cumulative distance from the start. Add/remove controls may update the number; the saved count must always match the rows.
+- Start (0 distance) and Finish (total distance) are separate endpoints and do not count as checkpoints.
+- Multiple checkpoints may be at different locations, or represent successive visits to the same physical circuit location.
+- For repeated laps, explicitly enter each crossing as a checkpoint. No separate required-pass count, circuit length or automatic lap-distance inference is needed.
+- Example for a 16 km course: checkpoint 1 “Bridge — lap 1” at 4 km; checkpoint 2 “Bridge — lap 2” at 9 km; checkpoint 3 “Bridge — lap 3” at 14 km; Finish at 16 km.
+- Distances are cumulative along the route, not straight-line/map distances. Validate nonblank names, ordered unique sequences, and strictly increasing positive distances less than total distance. Repeated names are permitted; IDs and sequence distinguish visits.
+- Store authoritative distance/elevation values in metres. Blank elevation means unknown; zero means known zero ascent.
+- Audit edits and removals. Preserve historical captures and published snapshots; never silently discard checkpoint evidence when changing a course.
 
 ### 13.2 Metric and imperial settings
 
@@ -340,8 +333,8 @@ These additions extend the earlier requirements. They describe intended behaviou
 
 **Calculation rules**
 - Use ACTUAL elapsed durations, never handicap-adjusted durations, for physical speed.
-- First section: distance from start to first checkpoint / duration from start to first crossing.
-- Subsequent lap: distance between consecutive passes / duration between their captured timestamps.
+- First section: checkpoint 1 distance from start / duration from start to its captured crossing.
+- Subsequent section: current checkpoint cumulative distance minus previous checkpoint cumulative distance, divided by duration between their valid captured crossings.
 - Final section: remaining distance to finish / duration from last lap crossing to finish.
 - Total average speed: total race distance / actual finish duration.
 - If there are no lap captures, start-to-finish is the only measured section.
@@ -349,10 +342,10 @@ These additions extend the earlier requirements. They describe intended behaviou
 - With stored milliseconds: km/h = distance_metres × 3,600 / duration_milliseconds; mph = km/h / 1.609344.
 - Example: 5 km in 10 minutes = 30.0 km/h, approximately 18.6 mph.
 - Calculate at full stored precision; proposed display is one decimal place.
-- Sequence crossings by CAPTURED timestamp, not the order in which riders were assigned.
+- Identify each crossing by its configured checkpoint ID. Use checkpoint sequence and captured timestamps, never rider-assignment order. A missing checkpoint must remain missing; do not shift a later crossing into its place.
 - Missing distance, nonpositive duration or impossible crossing distance displays — with an appropriate review warning, never infinity, NaN or a guessed speed.
 - Full-course total speed remains blank for unfinished riders; use measured split/cumulative speeds where available.
-- Label first partial section, repeated circuit laps and final finish section distinctly.
+- Label sections using configured checkpoint names/sequences and include the final section to Finish. If an intermediate capture is missing, any calculated wider split must state its actual endpoints and distance.
 - Show overall speed in the results table and lap distance/duration/speed in rider details or lap-comparison view. Portrait remains readable, with expanded detail if necessary; landscape exposes more columns.
 
 ### 13.4 Sound recording and voice assignment
@@ -393,7 +386,7 @@ These additions extend the earlier requirements. They describe intended behaviou
 
 | Measure | Required evidence |
 | --- | --- |
-| Course validation | Invalid total/first-pass/circuit distances rejected; optional elevation distinguishes blank from zero; original timing evidence retained |
+| Course validation | Required checkpoint count matches list; cumulative distances increase between Start and Finish; zero checkpoints is valid; optional elevation distinguishes blank from zero |
 | Unit conversions | Known metric/imperial cases match; repeated switches preserve authoritative values and timing/queue state |
 | Speeds | Tests cover first partial section, repeated laps, final section, total and correction-driven recalculation; handicap has no influence |
 | Unavailable speeds | No fabricated values, infinity or NaN from missing distances, nonpositive durations or beyond-course crossings |
@@ -406,7 +399,7 @@ These additions extend the earlier requirements. They describe intended behaviou
 
 ### 13.6 Review decisions and implementation status
 
-Please review these proposed details: elevation means total ascent; explicit circuit length; per-organiser versus per-device units; one-decimal speed display; five-second voice window; audio storage/retention and recognition provider.
+Please review these proposed details: elevation means total ascent; per-organiser versus per-device units; one-decimal speed display; five-second voice window; audio storage/retention and recognition provider.
 
 The selected visual direction remains Cycling Computer: dark surfaces, high-contrast timing numerals and large minimal controls. Delivery remains web first, Android later.
 
@@ -472,16 +465,15 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 
 ### 15.2 Who receives DNF
 
-- Only riders who actually started and remain unfinished can be newly marked DNF.
-- Exclude waiting/not-started riders, DNS riders, valid finishers and riders already DNF or withdrawn.
-- At Finish: mark eligible riders with no valid assigned finish capture DNF.
-- At Lap: mark eligible riders DNF when their number of valid assigned crossings at that point is LESS THAN the required crossing count, even if they passed the checkpoint on earlier laps.
-- When a lap checkpoint is enabled, race setup MUST include a positive integer required_lap_crossings: how many times each rider must pass that checkpoint before finishing. Without a checkpoint, required_lap_crossings is zero. Explain this as required checkpoint passes to avoid ambiguity about whether the final finish-line crossing counts.
-- The separate finish crossing does NOT increment the lap-checkpoint count. Example: required_lap_crossings = 3 means three recorded checkpoint passes plus a separate finish capture.
-- When a checkpoint is enabled, require this count before the race is ready; lap closure is blocked if it is missing or invalid. Show each affected rider's completed/required count in the closure preview. Without a checkpoint, the count is zero and no lap closure exists.
-- Preserve required crossing count with the closure snapshot and audit changes to it. Do not infer it from elapsed time, rider arrival order or a sample dataset.
-- A rider who completed the required checkpoint passes but has no finish remains Racing after lap-point closure; finish-point closure can subsequently mark them DNF.
-- A finish recorded against an incomplete required crossing count is a review conflict. Exclude it from confirmed publication until missing captures or the finish/status discrepancy are resolved; do not silently erase the finish capture.
+- Only started, unfinished riders can be newly marked DNF. Exclude Waiting, DNS, withdrawn, existing DNF and valid finishers.
+- Closing Finish marks eligible riders without a valid finish capture DNF.
+- Closing a checkpoint marks eligible riders without a valid assigned capture for THAT checkpoint ID DNF, even if they completed earlier checkpoints.
+- Earlier crossings at the same physical location do not satisfy a later checkpoint: each configured row is a separate required crossing.
+- The closure preview identifies checkpoint name, sequence, cumulative distance and affected riders; it checks checkpoint identities rather than just a crossing count.
+- For a circuit station handling several listed checkpoints, show which configured checkpoint(s) the closure covers. Closing the final/all-checkpoints session checks every required checkpoint, not an inferred lap total.
+- Riders who completed all required checkpoints but lack a finish remain Racing until finish closure.
+- A finish with missing required checkpoint evidence is a review conflict. Preserve the captured finish and resolve the missing capture or status explicitly before confirming results.
+- On a zero-checkpoint course, there is no checkpoint closure or missing-lap conflict; only finish closure applies.
 
 ### 15.3 Results and audit behaviour
 
@@ -498,50 +490,29 @@ Agreed organiser requirement: the organiser at the lap point or finish point can
 
 | Record | Fields |
 | --- | --- |
-| StationClosure | id, race_id, station_id, optional lap_point_id/required crossing count, closed_by, closed_at, affected rider-entry IDs, state closed/reopened, reopening organiser/time/reason |
+| StationClosure | id, race_id, station_id, covered checkpoint IDs/sequences, closed_by, closed_at, affected rider-entry IDs, state closed/reopened, reopening organiser/time/reason |
 | RiderStatusEvent extension | optional closure_id and station_id; DNF reason and reversal/correction history |
 
 ### 15.5 Acceptance criteria
 
 - Closing Finish marks only started, unfinished riders lacking a finish as DNF.
-- Closing Lap marks started, unfinished riders DNF if valid checkpoint passes are below required_lap_crossings, including riders who completed earlier laps.
-- With three required checkpoint passes, a rider with two is DNF at lap closure; a rider with three and no finish remains Racing until finish closure.
-- Missing/invalid required crossing count blocks lap closure; a separate finish never counts as a checkpoint pass.
+- Closing checkpoint 3 marks an eligible rider missing checkpoint 3 DNF, even with valid earlier checkpoint captures. Duplicate captures for checkpoint 1 never substitute for checkpoint 3.
+- Riders with all required checkpoints and no finish remain Racing until finish closure. A finish is not a checkpoint capture.
 - DNS, waiting, withdrawn, already-DNF and valid finished riders are not incorrectly reclassified.
 - Outstanding captures/conflicts prevent premature closure and remain available for assignment.
 - Counts and eligible riders are rechecked immediately before applying closure.
 - DNF riders retain timing history and appear as DNF without finisher positions.
 - Closure retries and reopening/correction preserve a complete audit trail.
 
-## 16. Optional lap checkpoint — Start-and-Finish-only courses
+## 16. Zero-checkpoint courses and updated setup experience
 
-Confirmed organiser requirement: a race does not have to contain any lap checkpoint.
-
-### 16.1 Setup and navigation
-
-- Race setup offers a clear **Lap checkpoint: Off / On** choice.
-- Off: configure Start, Finish and total race distance; optional elevation gain remains available. Do not require checkpoint names/distances, circuit distance or lap counts.
-- On: configure the single named checkpoint, first-pass distance, circuit distance and positive required checkpoint-pass count as already specified.
-- With no checkpoint, hide the Lap tab, lap recording controls, lap closure and lap-specific dashboard columns. Start, Finish, batch assignment, voice option, DNS and finish-point DNF closure remain available.
-- If checkpoint timing already exists, switching the checkpoint off requires an explicit reviewed configuration change. Preserve historical captures and audit the change; never silently discard lap evidence.
-
-### 16.2 Data and calculations
-
-- Race.lap_checkpoint_enabled is false for a Start-and-Finish-only course.
-- There are zero RaceLapPoint records, required_lap_crossings = 0, and circuit_distance_m is null when no lap checkpoint exists.
-- When enabled, the race has one RaceLapPoint, positive required_lap_crossings and a configured circuit distance.
-- No-lap courses calculate actual elapsed time as Finish minus Start, and overall average speed from total course distance divided by that duration.
-- Lap/cumulative checkpoint speeds are not applicable on no-lap courses; do not invent lap records or show a misleading 0/N completion requirement.
-- A valid finish on a no-lap course is not a missing-lap conflict.
-- Keep actual/handicap-adjusted rankings and metric/imperial speed presentation unchanged.
-- CSV exports explicitly identify checkpoint count/required passes as zero, with lap-point/circuit/lap-speed fields blank or not applicable.
-
-### 16.3 DNF and acceptance
-
-- Close Finish marks started, unfinished riders lacking a finish DNF, after resolving unassigned captures, for either course type.
-- Close Lap exists only when a checkpoint is enabled and uses the configured required pass count.
-- Test both course types through setup, start/DNS, capture/batch/voice/manual fallback, results, average speed, closure/DNF and publication review.
-- A no-lap race can be configured and run without entering any lap-specific data.
+- Course setup asks for **Required checkpoints**, followed by that many editable rows: sequence, name and distance from start.
+- Zero means Start and Finish only. Hide checkpoint entry rows, Lap/Checkpoint screen, checkpoint closure and checkpoint result columns.
+- With one or more rows, show the ordered checkpoint workflow. Each repeated circuit crossing is its own row; no extra “required checkpoint passes” control is shown.
+- Overall average speed always uses total course distance and actual start-to-finish duration. Sections use differences between configured cumulative distances.
+- Retain metric/imperial conversion, batch assignment, optional voice, DNS, Finish DNF closure, handicap rankings and publication.
+- During capture/assignment, make checkpoint context clear. If one physical station serves multiple configured crossings, distinguish which checkpoint a captured rider time belongs to; do not silently assume that a missing earlier capture means the current crossing is the earlier checkpoint.
+- Verify both Start/Finish-only and multi-checkpoint/circuit courses in UX review before app deployment.
 
 ## 17. Revision history
 
@@ -557,3 +528,5 @@ Confirmed organiser requirement: a race does not have to contain any lap checkpo
 | 1.4 review draft | 24 October 2026 | Confirms DNF at lap closure for incomplete required checkpoint passes; makes required_lap_crossings mandatory in race setup and distinguishes it from the separate finish. |
 
 | 1.5 review draft | 24 October 2026 | Confirms zero lap checkpoints are supported: Start/Finish-only setup and navigation, optional lap fields, overall speed and finish-only DNF closure. |
+
+| 1.6 review draft | 24 October 2026 | Replaces required checkpoint-pass/circuit configuration with an ordered required-checkpoint list; names and cumulative distances are entered for every crossing, including repeated circuit visits. Updates model, speeds and DNF identity checks. |
