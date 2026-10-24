@@ -1,9 +1,14 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.0  
-Agreed requirements recorded: 14 October 2026  
+Version: 1.1 — review draft  
+Original baseline: 14 October 2026  
+Last updated: 24 October 2026  
 Repository: debagged68/Time-Trial-App  
-Status: requirements baseline for review; no production timing accuracy claimed.
+Status: awaiting organiser review of the additions below. Further implementation and deployment are paused until that review. No production timing accuracy is claimed.
+
+## Version 1.1 changes for review
+
+The new requirements are consolidated in section 13, with data model changes in section 6. They cover total distance, optional elevation, named lap-point distances, metric/imperial settings, lap/total average speed, and optional recorded audio/spoken rider-number assignment with manual fallback. Proposed implementation choices are explicitly distinguished from user requirements.
 
 ## 1. Purpose and delivery
 
@@ -28,7 +33,7 @@ Each device is assigned a race and station/role. Start, Lap and Finish MUST be s
 
 ## 3. Race setup and registration
 
-A race stores name, date, timezone, start location and route name. The organiser configures timing stations and registers/imports riders before racing.
+A race stores name, date, timezone, start location, route name, total distance and optional total elevation gain (interpretation for review). The organiser configures timing stations and registers/imports riders before racing.
 
 Riders are reusable people; rider entries are their participation in a particular race. Each entry stores race number, age on race day, predicted completion duration, planned start order and handicap duration.
 
@@ -62,7 +67,7 @@ A dedicated Lap screen has a large LAP — CAPTURE TIME button. There is one lap
 
 Each press saves a separate timestamp BEFORE rider selection. Multiple unassigned captures may accumulate. Show a numbered queue, oldest first, with captured clock time and assignment state.
 
-Select a capture, then assign an eligible rider using large rider-number/name controls and quick number/name search. Assignment does not change the timestamp. Capture remains available while assigning an earlier capture.
+After capture, optionally speak the rider number for automatic assignment. If nothing is spoken, recognition is unclear, or voice is unavailable, select the rider from the next/active-rider list. For queued manual assignment, select the relevant capture then the eligible rider using large rider-number/name controls and quick number/name search. Assignment does not change the timestamp. Capture remains available while assigning an earlier capture.
 
 ### 4.3 Finish screen
 
@@ -88,12 +93,12 @@ Use rows and columns, not rider cards as the main results presentation.
 
 Provide these complementary table views:
 - Race control (default): planned order, rider number/name, status, actual start time, lap count, finish clock time and elapsed duration.
-- Results: actual position, rider, actual duration, finish clock time/crossing sequence, handicap, adjusted duration, adjusted position, prediction and prediction difference.
-- Lap comparison: rider/status, each lap or split duration, total duration, with access to raw crossing timestamps.
+- Results: actual position, rider, actual duration, finish clock time/crossing sequence, handicap, adjusted duration, adjusted position, prediction, prediction difference and total average speed.
+- Lap comparison: rider/status, each lap or split distance, duration and average speed, plus total duration and total average speed, with access to raw crossing timestamps.
 
 Expose rider details including gender and race-day age where needed. Support sorting by planned/actual start order, finish clock time/crossing sequence, actual duration/position and adjusted duration/position. Keep waiting, DNS, DNF and withdrawn riders visible in appropriate operational views; do not rank them as finishers.
 
-Portrait: compact table with rider number/name, status and elapsed time; tapping a row expands start, lap, finish, handicap and prediction details.
+Portrait: compact table with rider number/name, status and elapsed time; tapping a row expands start, lap distances/durations/speeds, finish, overall speed, handicap and prediction details.
 
 Landscape: wider table with additional detail columns. Adapt automatically to available width and orientation, including narrow landscape devices. Preserve selected view, sort, selected rider and expanded detail on rotation. Keep text and controls readable rather than shrinking the full table. Horizontal scrolling is acceptable for genuinely wide optional detail tables.
 
@@ -140,12 +145,16 @@ All records have stable unique IDs. Event records carry creation time and respon
 
 | Entity | Principal fields and relationships |
 | --- | --- |
-| Race | id, name, race date, timezone, start location, route name, lifecycle status; optional source provider/event/list identifiers |
+| Race | id, name, race date, timezone, start location, route name, total_distance_m, optional total_elevation_gain_m, circuit_distance_m, lifecycle status; optional source provider/event/list identifiers |
 | Rider | id, name, gender, email, optional date of birth or recorded age with reference date; optional stable provider person ID |
 | RiderEntry | id, race_id, rider_id, rider number, age on race day, predicted duration, planned start order, handicap duration, source entry ID/status, last imported time |
 | Organiser | id, display name, email |
 | RaceOrganiser | race_id, organiser_id, role/permissions; limits access to the assigned race |
-| TimingStation | id, race_id, name, type Start/Lap/Finish, optional checkpoint sequence |
+| RaceLapPoint | id, race_id, name, distance_from_start_m for first crossing; one repeated physical lap checkpoint in current scope |
+| TimingStation | id, race_id, name, type Start/Lap/Finish, optional lap_point_id; devices reference the same physical point |
+| UnitPreference | organiser and/or device reference, metric/imperial selection; storage scope proposed for review |
+| CaptureAudio | id, timing_capture_id, race/station/session reference, recording start/end, MIME type, audio reference/local device reference, availability and retention status |
+| AssignmentEvidence | capture_id, source manual/voice, optional recognised text/confidence, recognition outcome, assigned entry, organiser and timestamp |
 | DeviceSession | id, organiser_id, station_id, device/session identifier, readiness and clock synchronisation records |
 | TimingCapture | id generated on device, race_id, station_id, session_id, event type, original timestamp/timebase, synchronised race timestamp, offset/uncertainty reference, capture sequence, nullable rider_entry_id, assignment/void state, server receipt time |
 | RiderStatusEvent | id, rider_entry_id, DNS/DNS reversed/DNF/withdrawn event, reason, organiser/session, timestamp |
@@ -159,7 +168,7 @@ Timing captures and status events link to RiderEntry, not directly to Rider, so 
 
 Durations use integer units finer than a tenth, not formatted strings or floating-point minute values. Full event timestamps include date and UTC reference; display in race timezone. Age on race day is preserved as a race-specific snapshot.
 
-Derived status, rankings, lap/split durations, actual start order and finish sequence can be materialised for performance but must be reproducible from authoritative records and versioned rules.
+Derived status, rankings, lap/split distances and durations, lap and total average speeds, actual start order and finish sequence can be materialised for performance but must be reproducible from authoritative records and versioned rules.
 
 Constraints: unique (race, rider); unique (race, rider number); unique planned start position when assigned; at most one valid start and finish per entry; captures must belong to the same race as their assigned entry. Capture IDs and upload handling must be idempotent.
 
@@ -218,7 +227,7 @@ On publication:
 
 Keep recipient addresses private. Deduplicate identical addresses within a publication. Exclude emails and unrelated personal/contact details from the results CSV.
 
-CSV includes race name/date/start location/route, rider number/name, gender and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps.
+CSV includes race name/date/start location/route, rider number/name, gender and race-day age, rider status, planned and actual start order, actual start timestamp, each lap/checkpoint timestamp and split, finish timestamp, finish crossing sequence, actual duration/position, predicted duration/difference, handicap duration, adjusted duration/position. Also include total distance, optional elevation, checkpoint name/distance, circuit distance, lap distances/speeds and overall average speed. Use consistent headers, explicit timezone/units and a documented representation for a variable number of laps. Audio and transcripts are excluded from rider-facing results.
 
 Missing-email riders still remain in the results. Publication must clearly report recipients skipped due to missing/invalid addresses. Email queued/sent status must not be described as proof of inbox delivery.
 
@@ -271,7 +280,7 @@ Timing validation must include different devices, clock drift, delayed/lost netw
 5. Implement RiderHQ connector when its supported API contract/access is available.
 6. Field-test a full race, then package/adapt for Android and repeat platform-specific timing tests.
 
-Open decisions: RiderHQ access contract; supported device/browser matrix; email sender/provider; Android delivery approach; production scale limits; retention policy; final tie convention under applicable race rules. A successful wireframe interaction is not proof of timing accuracy or multi-device reliability.
+Open decisions: course/voice implementation choices in section 13; RiderHQ access contract; supported device/browser matrix; email sender/provider; Android delivery approach; production scale limits; retention policy; final tie convention under applicable race rules. A successful wireframe interaction is not proof of timing accuracy or multi-device reliability.
 
 ## 12. Research references
 
@@ -283,3 +292,129 @@ Checked 14 October 2026:
 - High Resolution Time specification: https://www.w3.org/TR/hr-time-3/
 
 Research establishes available documentation, not a confirmed API integration agreement.
+
+## 13. Course, units, speed and voice requirements — version 1.1 review
+
+These additions extend the earlier requirements. They describe intended behaviour, not features verified in the deployed test app. The organiser has requested review BEFORE further app work.
+
+### 13.1 Course data
+
+**User requirements**
+- Race data includes total race distance and optionally total elevation.
+- Lap points have names and distances from the start.
+- Current race format remains ONE physical lap checkpoint, crossed repeatedly on successive laps, with separate Start and Finish stations.
+- Course information must be editable within race setup, retained with the race and usable for automatic dashboard speed calculations.
+
+**Proposed modelling details for review**
+- Interpret total elevation as total elevation gain/ascent, rather than altitude above sea level. Blank means unknown/not supplied; zero means known zero ascent.
+- Store authoritative distances and elevation in metres, independently of display units.
+- Store first-pass distance from the start on the named lap point.
+- Also store circuit distance between repeated passes. This is needed to calculate later crossing distances without assuming every lap begins at the start line.
+- Cumulative distance at crossing n = first-pass distance + (n - 1) × circuit distance.
+- Remaining distance to finish = total race distance - cumulative distance at the final recorded lap.
+- Example: first pass 4 km, circuit 5 km, total 16 km. Passes are at 4, 9 and 14 km; final section to finish is 2 km.
+- Validate positive total/circuit distances, nonblank point name, first-pass distance between start and finish, and optional nonnegative elevation gain.
+- Flag crossings beyond the configured total distance. Preserve their timing captures; show unavailable/invalid distances and speeds instead of inventing values.
+- Audit distance changes and recalculate provisional speeds; never alter original timestamps or silently change a published snapshot.
+
+### 13.2 Metric and imperial settings
+
+**User requirements**
+- Settings allow Metric or Imperial selection.
+- Dashboard and setup display the selected distance and speed units consistently.
+
+**Proposed presentation and storage rules**
+- Metric: kilometres, km/h and metres of elevation gain.
+- Imperial: miles, mph and feet of elevation gain.
+- Input forms accept the selected units; values and exports identify their units.
+- Switching units converts presentation only, without changing measured times or authoritative SI distances.
+- Use exact conversion constants: 1 mile = 1,609.344 metres; 1 foot = 0.3048 metres.
+- Retain the preference across reloads. Whether it belongs to the organiser account or individual device remains for review; device-local fallback is acceptable.
+- Unit changes and portrait/landscape rotation preserve queue, selected rider and dashboard sort state.
+
+### 13.3 Automatic lap and total speed
+
+**User requirements**
+- Dashboard calculates average speed for each lap and overall, using duration and distance.
+- Show units and update calculated values automatically when relevant race data or valid timing assignments/corrections change.
+
+**Calculation rules**
+- Use ACTUAL elapsed durations, never handicap-adjusted durations, for physical speed.
+- First section: distance from start to first checkpoint / duration from start to first crossing.
+- Subsequent lap: distance between consecutive passes / duration between their captured timestamps.
+- Final section: remaining distance to finish / duration from last lap crossing to finish.
+- Total average speed: total race distance / actual finish duration.
+- If there are no lap captures, start-to-finish is the only measured section.
+- Optional cumulative speed: cumulative distance from start / cumulative elapsed duration.
+- With stored milliseconds: km/h = distance_metres × 3,600 / duration_milliseconds; mph = km/h / 1.609344.
+- Example: 5 km in 10 minutes = 30.0 km/h, approximately 18.6 mph.
+- Calculate at full stored precision; proposed display is one decimal place.
+- Sequence crossings by CAPTURED timestamp, not the order in which riders were assigned.
+- Missing distance, nonpositive duration or impossible crossing distance displays — with an appropriate review warning, never infinity, NaN or a guessed speed.
+- Full-course total speed remains blank for unfinished riders; use measured split/cumulative speeds where available.
+- Label first partial section, repeated circuit laps and final finish section distinctly.
+- Show overall speed in the results table and lap distance/duration/speed in rider details or lap-comparison view. Portrait remains readable, with expanded detail if necessary; landscape exposes more columns.
+
+### 13.4 Sound recording and voice assignment
+
+**User requirement: capture first, speak second**
+1. Organiser presses LAP or FINISH; the app immediately records and saves that crossing timestamp.
+2. The app records sound/listens for a rider number for that SPECIFIC capture.
+3. The organiser can say the number, for example “42”, “forty two” or “rider number four two”.
+4. A clear, unique, eligible number is assigned automatically without another confirmation press.
+5. If nothing is said or the number cannot be interpreted, show the next/active-rider list for manual rider selection.
+6. Whether assigned by voice or manually, the original captured time is unchanged.
+
+**Required fallback and rapid-capture behaviour**
+- Voice must never delay timestamp capture or block another LAP/FINISH press.
+- Allow multiple pending captures while recognising or assigning earlier ones.
+- Bind recording and recognition request to immutable capture ID, race and station.
+- Never associate a late recognition response with the newest capture just because it arrived last.
+- If overlapping speech cannot be associated reliably, retain the affected capture(s) for manual assignment.
+- Do not overwrite a manual assignment or act on a voided capture, another race or a stale station session.
+- Only auto-assign a reliably recognised number that uniquely matches a started, unfinished rider in that race.
+- Silence, ambiguity, low confidence, unknown/ineligible number, duplicate result, microphone denial or speech-service failure leaves the capture available for manual selection.
+- Do not guess from arrival order or list position.
+- The next/active-rider list shows large numbers and names, stays stable during selection and supports number search.
+- Display the recognised rider and capture time clearly; allow correction through the normal audited reassignment controls.
+- Assignment evidence records manual/voice source and any recognised text/confidence supplied by the engine.
+
+**Proposed audio behaviour for review**
+- Voice/audio is optional and explicitly enabled before use, with microphone permission.
+- Record a short clip after each capture; proposed maximum is five seconds. No undisclosed continuous ambient recording.
+- Show recording/listening status and a clear off/stop control.
+- Permit replay of a clip to resolve an unclear rider number.
+- Proposed first release stores clips only on the recording device, linked to capture ID. Shared audio storage, backup, retention and deletion policy remain to be decided.
+- Disclose whether recognition occurs on-device or uses an external browser/vendor service before enabling it.
+- Browser speech support and offline recognition are not guaranteed. Unsupported/offline speech falls back to manual selection; recording/replay can work independently when supported.
+- Raw audio and transcripts must not be included in rider results CSVs or emails.
+
+### 13.5 Additional acceptance criteria
+
+| Measure | Required evidence |
+| --- | --- |
+| Course validation | Invalid total/first-pass/circuit distances rejected; optional elevation distinguishes blank from zero; original timing evidence retained |
+| Unit conversions | Known metric/imperial cases match; repeated switches preserve authoritative values and timing/queue state |
+| Speeds | Tests cover first partial section, repeated laps, final section, total and correction-driven recalculation; handicap has no influence |
+| Unavailable speeds | No fabricated values, infinity or NaN from missing distances, nonpositive durations or beyond-course crossings |
+| Voice success | One timing press followed by a clear eligible number assigns the correct capture without a confirmation tap |
+| Voice fallback | Silence, ambiguity, unknown/ineligible number, unsupported browser, denied microphone and speech/network failure expose manual selection without losing the timestamp |
+| Voice concurrency | Rapid presses and late callbacks do not attach speech to the wrong capture or override manual corrections |
+| Audio association | Replay identifies its original capture and clearly states local/shared availability |
+| Outdoor usability | Test wind, traffic, accents, gloves and closely spaced arrivals on supported devices before race use |
+| Timing independence | Enabling audio or voice does not change the timing acceptance targets in section 10 |
+
+### 13.6 Review decisions and implementation status
+
+Please review these proposed details: elevation means total ascent; explicit circuit length; per-organiser versus per-device units; one-decimal speed display; five-second voice window; audio storage/retention and recognition provider.
+
+The selected visual direction remains Cycling Computer: dark surfaces, high-contrast timing numerals and large minimal controls. Delivery remains web first, Android later.
+
+This document is the review draft. Further app implementation and deployment are paused until the organiser completes the requested review.
+
+## 14. Revision history
+
+| Version | Date | Change |
+| --- | --- | --- |
+| 1.0 | 14 October 2026 | Initial timing, screens, model, ingestion, handicap and publication requirements; repeated lap checkpoint subsequently clarified |
+| 1.1 review draft | 24 October 2026 | Adds course distances/elevation, named point distance, metric/imperial units, lap/total speed and optional audio/voice assignment with manual fallback |
