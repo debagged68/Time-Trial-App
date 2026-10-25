@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.15 — compact tables, race management and ten-second voice through Beta 0.8  
+Version: 1.16 — approved list-first Race/Course management through Beta 0.9  
 Original baseline: 14 October 2026  
 Last updated: 25 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -845,3 +845,18 @@ Physical Android speech recognition and audible countdown checks remain device-v
 - Acceptance: uniqueness including concurrent saves; minute-only edits; protected starts and atomic batch removal; confirmed archive and stale-save rejection; duplication resets; header sort directions and missing-values-last; status filter; correct tab placement; landscape fit; ten-second deadline and natural speech restart without segment loss.
 
 Physical-phone speech/pause detection, beep audibility and narrow landscape usability remain device validation tasks. This section supersedes prior five-second voice and dashboard race-ID display rules.
+
+## 28. Approved list-first Race/Course design — Beta 0.9
+
+- Remove the header **Races** button. Race/Course tabs open lists rather than saved-item dropdowns with an always-open editor.
+- Highlight the currently selected entry. A race row shows name, date/time, course, entry count and status; a course row shows name, identifier, distance and checkpoint count.
+- Place **New, Duplicate, Batch delete** above each list and **Edit, Remove** beside each entry. Selection and editing are distinct actions; timing always uses the selected race.
+- Edit opens the complete existing form above the list and scrolls to it. Include Save and Cancel editing. Preserve every existing race field (name, date, HH:mm start, standard gap, selected course, organiser, start/finish/checkpoint timekeepers, optional marshalls and unit selection) and course field (identifier, name, start location, distance, optional elevation, checkpoint names/distances).
+- Reuse existing validation, uniqueness and timed-course snapshot protections. New/duplicate race drafts are committed on Save; cancellation restores prior selection. Duplication keeps the already-agreed timing/status reset rules.
+- Batch mode provides checkboxes and Select all eligible items. Removal confirmation lists count and item names; include race date/time. Started races cannot be selected or removed, including historical starts later voided.
+- Recheck local/shared state and version at execution. Archive each record using conditional writes; preserve snapshots and reject stale resurrection. If some per-record operations fail, report successes and each failure rather than claiming an atomic bulk transaction.
+- If the selected race is removed, select a remaining saved race. If none remain, show no selected race and require selection/new saved setup before timing; do not silently create a replacement saved race.
+- Prominently show **Current race: name, date, scheduled time, course** on Start, Lap, Finish and Results. The banner follows the selected race and uses its course snapshot.
+- Acceptance: list-first render, selected highlighting, full-field edit coverage, Save/Cancel flows, New/Duplicate, confirmed bulk race/course archival, started-race protection and rejection reporting, selected-race switching/empty list, removed redundant button, all four banners and retained timing/voice/export behaviour.
+
+The reviewed UI preview simplified fields solely to demonstrate interactions; the implemented forms must retain the full required fields.
