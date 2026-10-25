@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.13 — consolidated mobile beta requirements through Beta 0.6.1  
+Version: 1.14 — race dashboard, confirmations and whole-number speech through Beta 0.7  
 Original baseline: 14 October 2026  
 Last updated: 25 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -810,3 +810,22 @@ A handicap larger than the actual duration is invalid. Preserve actual duration 
 - Display the running app version in the header status bar on every screen. Beta 0.6.1 identifies the speech-revision/pause update.
 
 This specification is current through the approved Beta 0.6.1 changes. It does not imply all original product requirements are implemented: RiderHQ access, results email delivery, simultaneous raw-audio archiving, robust multi-device event merging and demonstrated cross-device timing accuracy retain their stated dependencies or beta limitations.
+
+## 26. Approved race dashboard and timing feedback — Beta 0.7, 25 October 2026
+
+This section supersedes conflicting earlier countdown-tone and speech punctuation rules.
+
+- Final zero/start beep is longer than preceding countdown tones. Beta uses one second, retaining the same pitch and volume; automatic next-rider advance must not cut it off.
+- Lap and Finish show a **Recently assigned** list after **Yet to start** and before **Recording history**, with rider number/name and original recorded crossing time. Sort latest assignment first, irrespective of capture order. Track assignment order separately. Legacy records without that evidence use capture order rather than inventing assignment timestamps.
+- Show a completion tick on the selected checkpoint and Finish when all applicable riders have a valid assigned crossing there and no unassigned recordings remain. Waiting riders prevent completion; DNS/DNF are excluded. Do not show a completion tick for an empty applicable list.
+- Beside **Live results**, show elapsed time from the first actual start. Freeze when every entry is Finished/DNS/DNF, using the latest valid finish/DNF time. On closure replace the timer with **Race closed**.
+- Saved races display **Closed** if closed; otherwise **Live** after any valid rider start; otherwise **Pending** before scheduled race start or **Overdue** at/after it. A completed but unclosed race stays Live.
+- Add **Dashboard** navigation and access from the race chooser. One row per race contains full race ID, name, course name, race date/time, entered count, status, finished count, on-course count, fastest valid actual duration and fastest valid adjusted duration.
+- Combine course, inclusive date range and rider filters. With a selected rider, show only their entered races and replace fastest duration columns with that rider’s actual and adjusted durations. Pending/DNS/DNF or invalid values are blank/dash, never fabricated; invalid handicap leaves adjusted blank.
+- Shared summaries refresh every 15 seconds and on demand. Include unsynced/device-only records, flag unavailable shared data, retain filters and table scroll, and provide Open race. Use the race’s saved course snapshot for historical course names.
+- Identify a rider across races by stable reusable rider identity where available, otherwise email. Beta legacy fallback uses bib/name/age/category and may create separate choices if those details differ; do not silently merge solely by reused bib.
+- Speech always yields whole rider numbers, never a time/duration. “12 [pause] 25”, “12 then 25”, and browser text “12:25” represent two numbers, 12 and 25. Non-number words/punctuation delimit numbers and remain in the audit text. Do not guess that undelimited 1225 is 12 and 25.
+- Display **Recognised text** and **Interpreted rider numbers** separately in capture/batch review and retained history, including unsuccessful interpretations. Preserve complete final segment wording; a visual segment separator may be used. Keep explicit Confirm and existing count, ambiguity, duplicate and eligibility protection.
+- Acceptance covers status precedence and boundary time; checkpoint-specific completion and clear/restore; reverse-order assignment confirmations; running/frozen/closed race timer; aggregate and rider-specific durations and combined filters; long final beep preservation; colon/word-separated speech, immutable capture times and retained raw text.
+
+Physical Android speech recognition and audible countdown checks remain device-validation tasks; automated tests do not establish microphone quality or cross-device timing accuracy.
