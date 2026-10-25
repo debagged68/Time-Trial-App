@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.14 — race dashboard, confirmations and whole-number speech through Beta 0.7  
+Version: 1.15 — compact tables, race management and ten-second voice through Beta 0.8  
 Original baseline: 14 October 2026  
 Last updated: 25 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -829,3 +829,19 @@ This section supersedes conflicting earlier countdown-tone and speech punctuatio
 - Acceptance covers status precedence and boundary time; checkpoint-specific completion and clear/restore; reverse-order assignment confirmations; running/frozen/closed race timer; aggregate and rider-specific durations and combined filters; long final beep preservation; colon/word-separated speech, immutable capture times and retained raw text.
 
 Physical Android speech recognition and audible countdown checks remain device-validation tasks; automated tests do not establish microphone quality or cross-device timing accuracy.
+
+## 27. Approved compact management iteration — Beta 0.8, 25 October 2026
+
+- Dashboard hides the internal race ID. Business uniqueness is normalised race name + race date + HH:mm scheduled time; enforce both in setup and shared writes, including concurrent creation. Preserve stable internal IDs for references. Do not silently rename existing duplicate historical records.
+- Dashboard race/course names use compact two-line cells and wrapping headers. Fit the table to landscape mobile width; portrait may scroll. Add ascending/descending header arrows, semantic sort state and a combined Status filter.
+- Results column headers support ascending/descending rider, actual place, start time, actual duration, adjusted duration, finish crossing, handicap and checkpoint time sorting. Keep export in actual-place order regardless of display sort.
+- Use fixed mobile tab rows: **Course, Race, Riders, Dashboard** then **Start, Lap, Finish, Results**. Keep Lap disabled when there are no checkpoints so the layout stays consistent.
+- Start-list batch removal selects only entries with no historical start. Review the count/names and confirm. Validate the entire batch before any removal; archive entries and recalculate schedules without altering actual timing evidence.
+- Race scheduled start input is HH:mm, without seconds. Preserve unchanged legacy timestamp evidence when syncing old races; edited setup uses minute resolution.
+- Match Course/Race list controls: saved-list selection, New, Duplicate and confirmed Delete. New race starts with an empty roster. Duplicate copies setup, entries and start gaps while resetting timings, statuses, closure and speech history. Choose a noncolliding default name.
+- Race Delete is allowed only when no start has ever been recorded, including subsequently voided starts; revalidate on the shared service with version checking. Implement as archive, retaining records and preventing stale-device resurrection. Course archival preserves snapshots already attached to races.
+- Extend capture listening to **10 seconds after the latest press**, retaining the existing 30-second/20-capture cap. If the browser closes recognition naturally within the window, reopen serially without competing microphone ownership and retain previous final segments.
+- **Requested but not guaranteed in Beta 0.8:** every acoustic pause longer than 0.5 seconds must delimit rider numbers, including within a single browser transcription. The browser path does not reliably expose that within-result timing. Separate recognised segments, punctuation and explicit words remain supported; do not guess a split of a concatenated integer. UI must disclose the limitation and “then” fallback. A suitable single audio-capture/VAD/transcription pipeline or native speech capability remains required for exact threshold enforcement.
+- Acceptance: uniqueness including concurrent saves; minute-only edits; protected starts and atomic batch removal; confirmed archive and stale-save rejection; duplication resets; header sort directions and missing-values-last; status filter; correct tab placement; landscape fit; ten-second deadline and natural speech restart without segment loss.
+
+Physical-phone speech/pause detection, beep audibility and narrow landscape usability remain device validation tasks. This section supersedes prior five-second voice and dashboard race-ID display rules.
