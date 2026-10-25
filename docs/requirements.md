@@ -1,10 +1,12 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.12 — start-list gaps, autostart and post-race correction  
+Version: 1.13 — consolidated mobile beta requirements through Beta 0.6.1  
 Original baseline: 14 October 2026  
-Last updated: 24 October 2026  
+Last updated: 25 October 2026  
 Repository: debagged68/Time-Trial-App  
 Status: baseline requirements approved by the organiser. Mobile beta feedback below is approved for implementation; no production timing accuracy is claimed.
+
+Later approved sections supersede conflicting earlier descriptions. Sections 22–25 define the current course/race separation, start-list controls, corrections, speech batches and Beta 0.6.1 speech handling. Requirements describe the intended product; implementation limitations remain explicitly identified below.
 
 ## Version 1.1 changes for review
 
@@ -779,3 +781,32 @@ A handicap larger than the actual duration is invalid. Preserve actual duration 
 - Revalidate the full proposal before an atomic all-or-none confirmation. Preserve transcript, batch identity, capture assignment source and audit history. Cleared/assigned times stay retained. Normal manual selection, Clear and Undo remain available.
 - Recognition keeps exclusive microphone ownership. A later batch waits for release of a closing recogniser; no competing MediaRecorder/getUserMedia stream is added. Existing raw-clip limitations remain.
 - Late callbacks cannot change a frozen/manually reviewed/confirmed batch. Recover interrupted batches as review-required on reload. Browser/network errors preserve all timestamps and expose manual review. Real phone recognition still needs testing.
+
+## 25. Final beep, speech revisions and pauses — Beta 0.6.1
+
+### Countdown sound consistency
+
+- The zero/start beep must use the same volume and envelope as the preceding countdown beeps.
+- Advancing automatically to the next rider must not truncate a playing final beep or cancel the imminent zero beep. Explicitly turning sound off may stop playback.
+- Verify scheduling and cancellation in automated tests; audible consistency still needs a device test.
+
+### Final speech results and pauses
+
+- Request final speech results only for race capture and the speech help test. Intermediate recognition hypotheses must not accumulate in the saved transcript.
+- Store results by browser result index. Repeated delivery or revision at the same index replaces that result, rather than appending another copy.
+- Preserve separate final speech segments as explicit number boundaries. “46 [pause] 55” must produce suggestions for riders 46 and 55 when the browser exposes separate segments, equivalent to “46 then 55”.
+- A pause is not guaranteed to produce a segment on every device. If no reliable boundary exists, do not guess that 4655 means 46 and 55. Count mismatch or ambiguity requires manual review.
+- Do not remove genuine duplicate final numbers merely to make the count match: retain the evidence and block confirmation through duplicate-rider validation.
+- Interpret the completed transcript when listening ends, retaining the shared-window rules in section 24. Each button press remains a separate immutable timestamp; a batch transcript may appear against multiple related captures in history.
+- Preserve existing historical transcripts and timing evidence. This fix does not retrospectively repair old recognition text.
+- Acceptance: repeated interim “46” / “46 then” / “46 then 55” does not duplicate text; repeated callbacks at the same final index are idempotent; separate final 46 and 55 segments remain separate; unsegmented 4655 for two captures requires review; genuine duplicate numbers remain review errors; frozen batches ignore late callbacks.
+- Automated tests cover these cases. Actual Android/browser speech service recognition and pause detection remain subject to the organiser’s phone retest.
+
+### Current authoritative setup and results summary
+
+- Course has course identifier, one Course name, start location, total distance, optional elevation and ordered named cumulative-distance checkpoints. There is no separate Route name field.
+- Race has name, date, timezone, scheduled start, standard gap, selected course and its retained snapshot, organiser, start/finish/checkpoint timekeepers and optional marshalls. Rider entries belong to the race.
+- Current main results column order is **Rider/status, Place, Start time, Race time, Adjusted/place, Last crossing/finish, Handicap, then checkpoint columns**.
+- Display the running app version in the header status bar on every screen. Beta 0.6.1 identifies the speech-revision/pause update.
+
+This specification is current through the approved Beta 0.6.1 changes. It does not imply all original product requirements are implemented: RiderHQ access, results email delivery, simultaneous raw-audio archiving, robust multi-device event merging and demonstrated cross-device timing accuracy retain their stated dependencies or beta limitations.
