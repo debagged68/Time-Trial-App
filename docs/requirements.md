@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.17 — reusable riders and protected setup through Beta 0.10  
+Version: 1.18 — compact lists, multi-select and filtered dashboard totals through Beta 0.11  
 Original baseline: 14 October 2026  
 Last updated: 31 October 2026  
 Repository: debagged68/Time-Trial-App  
@@ -880,3 +880,13 @@ Switching app tabs must preserve Audio ON/OFF. Temporarily backgrounding the app
 ### 29.2 Seven-second listening window — Beta 0.10.2
 
 Lap and Finish listen for seven seconds after the latest capture press, replacing the prior ten-second window. Rapid presses still share and extend the same batch, subject to existing total batch caps. Preserve explicit confirmation, immutable timestamps and Audio preference across tabs.
+
+## 30. Compact lists and multi-select — Beta 0.11
+
+- On Race, Course and Riders lists, a 0.5-second hold enters multi-select with the held item ticked. Further row taps or checkboxes toggle selections; the current race/course remains highlighted independently of deletion selection.
+- Moving to scroll before the hold threshold cancels only the pending hold. Once multi-select is active, scrolling preserves selection mode and every tick. Cancel selection or completion of the bulk action exits selection mode.
+- Keep the explicit batch-selection button for keyboard/accessibility use. Select all includes eligible items only. Started riders/races remain protected. Bulk removal requires review/confirmation and existing shared-state eligibility checks; selection alone never deletes.
+- Suppress the click generated when releasing a hold, including after a list rerender. Keep rider drag handles and Edit/Remove controls separate from long-press selection.
+- Race and Course use compact rows matching the rider list, with Edit and Remove side by side. Race summaries show name, start date/time, rider count and Pending/Overdue/Live/Closed status. Course summaries show name, checkpoint count, distance and optional elevation gain in selected units; omit elevation if absent.
+- Dashboard begins with Races, Pending, Live, Overdue and Closed counts. Calculate all five from exactly the table's filtered race set, combining course, date, rider and status filters. Empty results show zeros. Refresh totals with shared data and scheduled status transitions.
+- Acceptance covers the 500ms threshold, held-item tick, further selection and cancellation, scroll preservation, protected entries, confirmation, compact summary fields/units, independent current highlighting and combined dashboard filters.
