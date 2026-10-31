@@ -872,3 +872,7 @@ The reviewed UI preview simplified fields solely to demonstrate interactions; th
 - Acceptance covers birthdays/leap dates, age refresh, directory order and matching, same-course best-time exclusions, duplicate/repeated imports and bib collisions, entry-only import, locked race/course API writes including historical starts, preserved timing corrections, selected-race banner and recent-assignment order.
 
 This release does not change the existing speech, external integration or field timing validation limitations.
+
+### 29.1 Audio preference across tabs — Beta 0.10.1
+
+Switching app tabs must preserve Audio ON/OFF. Temporarily backgrounding the app may end listening but must not disable the chosen Audio mode. Returning to Lap or Finish uses the retained preference for the next capture. Explicit Audio OFF remains available; changing selected race retains its separate reset behaviour.
