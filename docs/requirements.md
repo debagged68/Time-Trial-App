@@ -876,3 +876,7 @@ This release does not change the existing speech, external integration or field 
 ### 29.1 Audio preference across tabs — Beta 0.10.1
 
 Switching app tabs must preserve Audio ON/OFF. Temporarily backgrounding the app may end listening but must not disable the chosen Audio mode. Returning to Lap or Finish uses the retained preference for the next capture. Explicit Audio OFF remains available; changing selected race retains its separate reset behaviour.
+
+### 29.2 Seven-second listening window — Beta 0.10.2
+
+Lap and Finish listen for seven seconds after the latest capture press, replacing the prior ten-second window. Rapid presses still share and extend the same batch, subject to existing total batch caps. Preserve explicit confirmation, immutable timestamps and Audio preference across tabs.
