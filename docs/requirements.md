@@ -1,8 +1,8 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.16 — approved list-first Race/Course management through Beta 0.9  
+Version: 1.17 — reusable riders and protected setup through Beta 0.10  
 Original baseline: 14 October 2026  
-Last updated: 25 October 2026  
+Last updated: 31 October 2026  
 Repository: debagged68/Time-Trial-App  
 Status: baseline requirements approved by the organiser. Mobile beta feedback below is approved for implementation; no production timing accuracy is claimed.
 
@@ -860,3 +860,15 @@ Physical-phone speech/pause detection, beep audibility and narrow landscape usab
 - Acceptance: list-first render, selected highlighting, full-field edit coverage, Save/Cancel flows, New/Duplicate, confirmed bulk race/course archival, started-race protection and rejection reporting, selected-race switching/empty list, removed redundant button, all four banners and retained timing/voice/export behaviour.
 
 The reviewed UI preview simplified fields solely to demonstrate interactions; the implemented forms must retain the full required fields.
+
+## 29. Approved reusable riders and setup protection — Beta 0.10
+
+- Show the current selected race banner on Riders as well as Start, Lap, Finish and Results.
+- Race setup becomes read-only after any rider has started or the race has completed/closed. A subsequently voided start or reopened race does not unlock setup. Course setup is read-only when any race using it has started or completed. Enforce these rules in the UI and shared API; retain explicit timing corrections after closure.
+- Lap and Finish order is active riders, recently assigned riders (latest assignment first), then riders yet to start. This supersedes section 26 placement.
+- Race edit provides Import riders from another race, with source selection, preview and confirmation. Import entry details, handicaps and predictions; skip existing people, show reassigned colliding bib numbers, and never copy starts, crossings, finishes, statuses or speech evidence.
+- Add rider offers unique saved riders across races, ordered by surname then age, with best valid actual finish duration on the same course. Reuse identity across entries. Prefer stored identity, then name/DOB, email/name, or exact legacy name/age/category; legacy incomplete records can remain separate choices. Do not merge by bib alone.
+- Optional date of birth is available on rider add/edit and CSV import. Calculate mandatory age on the selected race date, validate actual calendar dates and prohibit future births. Without DOB require age explicitly. Recalculate when race date changes; DOB is not included in results CSV.
+- Acceptance covers birthdays/leap dates, age refresh, directory order and matching, same-course best-time exclusions, duplicate/repeated imports and bib collisions, entry-only import, locked race/course API writes including historical starts, preserved timing corrections, selected-race banner and recent-assignment order.
+
+This release does not change the existing speech, external integration or field timing validation limitations.
