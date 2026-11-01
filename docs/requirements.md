@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.19 — lifecycle, viewing, exports and timekeeper readiness through Beta 0.12  
+Version: 1.20 — field-test identity, operation sync and recovery through Beta 0.13  
 Original baseline: 14 October 2026  
 Last updated: 1 November 2026  
 Repository: debagged68/Time-Trial-App  
@@ -920,3 +920,17 @@ Acceptance includes lifecycle CAS/stale rejection, closed deletion, dashboard-on
 ### 32.1 Compact unassigned recordings — Beta 0.12.1
 
 On both Lap and Finish, each unassigned recording places captured time, Enter/dictate # and Clear time side by side in one row. Retain at least 44px control height. Display recognised text and interpreted numbers in smaller text directly beneath, keeping rider suggestions/confirmation and the active-rider list available. Preserve capture timestamps, speech evidence and existing clear/assignment behaviour.
+
+## 33. Field-test identity, operation sync and recovery — Beta 0.13
+
+- Use individual hosted ChatGPT sign-in. Derive identity from trusted hosting headers; reject anonymous race APIs. Site sharing and application race membership are separate access requirements. No invitations are sent implicitly.
+- The configured site owner administers courses/races. Race administrators manage setup/access and corrections; timekeepers have explicit Start, Finish or checkpoint permissions. Revalidate permission on every upload, including after revocation. Display the signed-in account and disable controls outside its role.
+- Capture locally at the input instant using the existing calibrated clock. Preserve capture UUID, original timestamp, clock evidence and responsible account. Server receipt time is separate.
+- Persist a per-account/race operation outbox synchronously on the device and mirror recovery records to IndexedDB. Upload stable operation IDs with expected previous values. Retry without duplicating captures or assignments. Continue recording offline after initial signed-in loading; cached identity does not override server authorisation.
+- Merge independent device operations through conditional saves. Commit each operation receipt atomically with the race projection. Reject conflicting edits/assignments for explicit review; retain queued changes, original evidence and full backup. Never silently replace the entire race with another device snapshot after event sync begins. Protect against numeric local capture-ID collisions by using UUIDs in transport, including speech-batch references.
+- Continue uploading queued work for previously selected races while the application is open and online. Show local pending counts, upload errors, conflicts and sign-in needs. Preserve pre-update owner-local records as a recovery copy and expose them through Full backup.
+- Full backup includes timing/speech/correction evidence, pending operations, conflicts and server base. Restore requires preview and confirmation, creates a separate race ID/name, retains original timestamps and recovery provenance, and never overwrites an existing shared race. Reject unsupported/corrupt backups.
+- Automated acceptance covers anonymous/unassigned denial, station permissions/revocation, concurrent captures, conditional-write retries, duplicate delivery, reused-ID rejection, assignment conflicts, offline dependency retry, real-client queue replay/ID remapping, exact backup capture preservation and existing regression suites.
+- Field acceptance still requires testing actual phones: signed-in sharing, several simultaneous timekeepers, disconnection/reload/reconnection, fast successive captures with/without speech, backup restore comparison, and independent clock-reference measurements. Automated tests and readiness estimates do not prove the 0.1-second timing target.
+
+Beta 0.13 retains existing limits: no verified RiderHQ API integration, automated results emailing, simultaneous raw-audio archive or guaranteed 0.5-second acoustic pause detection. Its operation protocol uses the existing R2 race projection and shared domain reducer, with polling and a 60,000-operation receipt limit; it does not introduce a second timing engine or claim unbounded production scale.
