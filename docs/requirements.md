@@ -916,3 +916,7 @@ Lap and Finish listen for seven seconds after the latest capture press, replacin
 - Cross-device 0.1-second accuracy and phone beep audibility remain field-validation requirements. Diagnostic estimates and automated tests do not prove these targets.
 
 Acceptance includes lifecycle CAS/stale rejection, closed deletion, dashboard-only archives and filtered counts, cancel/restore with preserved results, readonly full forms, table sorting, final manual/autostart tone retention, native XLSX typing/milliseconds, separate check-in writes, cross-session confirmations, withdrawal and stale readiness.
+
+### 32.1 Compact unassigned recordings — Beta 0.12.1
+
+On both Lap and Finish, each unassigned recording places captured time, Enter/dictate # and Clear time side by side in one row. Retain at least 44px control height. Display recognised text and interpreted numbers in smaller text directly beneath, keeping rider suggestions/confirmation and the active-rider list available. Preserve capture timestamps, speech evidence and existing clear/assignment behaviour.
