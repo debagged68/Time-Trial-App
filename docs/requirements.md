@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.21 — simplified race-day navigation through Beta 0.14  
+Version: 1.22 — timekeeper permissions and action feedback through Beta 0.15  
 Original baseline: 14 October 2026  
 Last updated: 1 November 2026  
 Repository: debagged68/Time-Trial-App  
@@ -951,3 +951,14 @@ Recover all eligible pre-login browser races/courses for the signed-in site admi
 Hold unsynced recovered races for review if they differ from the shared race. Offer full backup, separate recovery-race restoration, or using the shared race while retaining the local recovery record. No background upload may bypass that review. Provide Recovered data on Race/Dashboard with original-record download and confirmed separate restoration. Recovery requires the browser/device that still holds those records; other accounts cannot access the old owner inventory.
 
 Recompute New/Duplicate eligibility after list/permission refresh, display a reason when disabled, and show the signed-in role. Retain owner creation permission, saved-source selection and Save/Cancel draft restrictions. Refreshes must reconnect action handlers and permissions; updated course lists must become visible outside an editor. Duplicates reset previous operation receipts/protocol and recovery metadata along with timing history.
+
+## 35. Timekeeper controls and visible action feedback — Beta 0.15
+
+- Race access places each station checkbox on its own accessible row, in a distinct fieldset. Add and Save controls follow below without overlap at mobile width. Add confirms a draft addition; Save applies the list, shows progress and prevents repeated submissions or concurrent edits.
+- Disable Race access for non-race-administrators and Restore backup for non-site-administrators, with explanations. Full backup remains available for an active assigned selected race. Bind tools after list updates and acknowledge download requests; attach download links to the document for mobile compatibility.
+- Show immediate busy feedback for Race control's position, withdrawal, sync and refresh actions. Prevent repeated presses, serialize station writes and retain completion/failure messages across automatic refreshes. Position confirmation is separate from recalibration. Background heartbeats must not silently consume a user action or replace its message.
+- A timing check shows completion timestamp, readiness, offset and uncertainty even when already ready. Show last check in device details. Failed checks must report failure. Coalesce simultaneous clock checks and bound network waits. Ignore responses belonging to an old race/session; do not replace a newer confirmation with a stale station-list response.
+- Select the first permitted station for a timekeeper, including Finish-only assignments. Name entry before confirmation must not redraw the next click target. Changing an already-confirmed station/name withdraws the old declaration and requires a fresh one.
+- Provide progress and repeated-press protection for race setup save, access save, dashboard refresh, confirmed management removal/archive and source-rider preview. Keep the local timing capture path independent from these network waits.
+- Authorised Start timekeepers may set the next waiting start to the current calibrated time rounded up to a minute, while race/Start station are open. Use the existing domain override calculation, validated as an exact narrowly scoped operation on the server. Finish/checkpoint permissions cannot perform it. Do not grant general setup/roster editing rights. Preserve actual capture timestamps and locked race details after starting; before any historical start the scheduled race date/time and waiting schedule may update together. Scheduled setup time remains HH:mm.
+- Acceptance includes deferred-network pending/success/failure feedback, queued heartbeat/user writes, repeated presses, role-based tools and generated backups, compact access layout, Start-only override API enforcement and forged-change rejection, minute rounding and preserved historical capture evidence. Existing offline, recovery, race-mode, export, autostart and speech tests remain required. Physical-phone behaviour and independent timing accuracy remain field validation.
