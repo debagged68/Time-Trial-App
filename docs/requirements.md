@@ -1,8 +1,8 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.18 — compact lists, multi-select and filtered dashboard totals through Beta 0.11  
+Version: 1.19 — lifecycle, viewing, exports and timekeeper readiness through Beta 0.12  
 Original baseline: 14 October 2026  
-Last updated: 31 October 2026  
+Last updated: 1 November 2026  
 Repository: debagged68/Time-Trial-App  
 Status: baseline requirements approved by the organiser. Mobile beta feedback below is approved for implementation; no production timing accuracy is claimed.
 
@@ -890,3 +890,29 @@ Lap and Finish listen for seven seconds after the latest capture press, replacin
 - Race and Course use compact rows matching the rider list, with Edit and Remove side by side. Race summaries show name, start date/time, rider count and Pending/Overdue/Live/Closed status. Course summaries show name, checkpoint count, distance and optional elevation gain in selected units; omit elevation if absent.
 - Dashboard begins with Races, Pending, Live, Overdue and Closed counts. Calculate all five from exactly the table's filtered race set, combining course, date, rider and status filters. Empty results show zeros. Refresh totals with shared data and scheduled status transitions.
 - Acceptance covers the 500ms threshold, held-item tick, further selection and cancellation, scroll preservation, protected entries, confirmation, compact summary fields/units, independent current highlighting and combined dashboard filters.
+
+## 31. Approved management, timing feedback and exports — Beta 0.12
+
+- Always request explicit confirmation before beginning implementation of proposed changes. Design agreement alone is not implementation permission. This release was explicitly authorised.
+- Race list data columns: Name, Race date, Start time, Riders, Status. Do not add Course name to this table; retain it in details. Course list: Name, Length, Checkpoints, optional Elevation. Support ascending/descending data-column sorting with visible arrows and retained selection/highlighting.
+- Rename Edit to View/Edit. Started/completed race and locked-course details are viewable using the full form, with read-only fields, disabled Save and available Cancel. Keep existing server-side setup locks and timing correction paths.
+- Allow removal of Closed as well as unstarted races. Started, unclosed races remain protected. The prompt offers Confirm delete, Archive and Cancel for single or batch race removal.
+- Delete removes a race from all lists, using a retained tombstone to reject stale device resurrection. Archive is distinct: save archived_at and previous_status, retain all result evidence and show Archived only on Dashboard. Keep legacy pre-0.12 removed records deleted rather than silently restoring them.
+- Include Archived in dashboard counts and status filters; apply existing combined filters to all counts. Archived races must not be selectable in ordinary race or import lists.
+- Opening an archived dashboard result presents an explicit archived warning, its previous status, Restore and view results, and Cancel. Restore uses version checking, retains captures/results, and returns to the previous lifecycle state. Pending/Overdue reflects current scheduled time after restoration.
+- Restore the one-second final start beep at preceding tones' volume/pitch. Ensure both manual starts and autostarts produce/preserve it; advancing to the next rider must not truncate it.
+- Add Results Excel (.xlsx), retaining CSV. Native numeric UTC timestamp cells display date/time with milliseconds. Numeric durations use day fractions and minutes:seconds.tenths formatting. State UTC convention in the workbook, use actual-place order, freeze headers and provide filters. Share the export data builder. This does not add XLSX import or scheduled-start CSV import.
+
+## 32. Shared timekeeper readiness — Beta 0.12
+
+- Add Race control, accessible from Dashboard and timing screens. For Start, Finish and each checkpoint show assigned/declared timekeeper, in-position confirmation time, clock readiness, offset, estimated uncertainty, last clock check and last seen connection.
+- Each session selects its station, enters its name and explicitly taps I'm in position. No longer in position withdraws confirmation. Changing race or station requires a fresh confirmation. Use manual confirmation without GPS.
+- Distinguish manual physical-position declaration, estimated clock readiness and connection freshness. Display the number of required stations with at least one ready, connected, in-position timekeeper.
+- Provide Check timing sync. Each device independently performs multiple requests against a common server clock; do not require simultaneous human button presses. Continue automatic checks on launch, periodically and after returning from background.
+- Beta diagnostic readiness requires a successful clock check within 90 seconds, estimated half-round-trip uncertainty at most 40 ms, and station connection within 45 seconds. Station updates refresh every 15 seconds. Stale connection or sync must not look Ready; retain the historical confirmation time.
+- Persist check-ins separately from the whole race object to avoid conflicts with timing captures. Session identifiers distinguish devices/tabs. Name and physical-position declarations are not verified individual identity or GPS evidence.
+- Preserve offset, uncertainty, clock-check timestamp and session/station context with captures. Never wait for a server response at the capture instant or retrospectively rewrite captures following a new sync.
+- Show an explicit warning when stations are not ready while keeping timing controls available.
+- Cross-device 0.1-second accuracy and phone beep audibility remain field-validation requirements. Diagnostic estimates and automated tests do not prove these targets.
+
+Acceptance includes lifecycle CAS/stale rejection, closed deletion, dashboard-only archives and filtered counts, cancel/restore with preserved results, readonly full forms, table sorting, final manual/autostart tone retention, native XLSX typing/milliseconds, separate check-in writes, cross-session confirmations, withdrawal and stale readiness.
