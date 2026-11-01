@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.20 — field-test identity, operation sync and recovery through Beta 0.13  
+Version: 1.21 — simplified race-day navigation through Beta 0.14  
 Original baseline: 14 October 2026  
 Last updated: 1 November 2026  
 Repository: debagged68/Time-Trial-App  
@@ -934,3 +934,12 @@ On both Lap and Finish, each unassigned recording places captured time, Enter/di
 - Field acceptance still requires testing actual phones: signed-in sharing, several simultaneous timekeepers, disconnection/reload/reconnection, fast successive captures with/without speech, backup restore comparison, and independent clock-reference measurements. Automated tests and readiness estimates do not prove the 0.1-second timing target.
 
 Beta 0.13 retains existing limits: no verified RiderHQ API integration, automated results emailing, simultaneous raw-audio archive or guaranteed 0.5-second acoustic pause detection. Its operation protocol uses the existing R2 race projection and shared domain reducer, with polling and a 60,000-operation receipt limit; it does not introduce a second timing engine or claim unbounded production scale.
+
+## 34. Simplified race-day navigation and mobile race list — Beta 0.14
+
+- Put a SETUP / RACE toggle beside the app title. Show only four tabs at once: Course, Race, Riders, Dashboard in SETUP; Start, Lap, Finish, Results in RACE. This supersedes the earlier two-row, eight-tab layout. Lap remains present but disabled for courses without checkpoints.
+- Default to SETUP. On entering RACE through the toggle, confirm the current saved race name, date, start time and course. Offer Cancel — select another race and Proceed to RACE. Cancel stays in SETUP and opens Race selection. Proceed opens Start or the last race-day tab. Block unsaved new drafts and missing/archived/deleted selections; reject stale confirmation if the selected race changes.
+- Returning to SETUP requires no confirmation. Preserve capture timestamps, unassigned queues, upload outboxes and Audio setting across mode switches. Finalise any active recognition session through the existing speech handling without silently turning Audio OFF.
+- Start, Lap and Finish show a compact clickable readiness indicator by the selected race: All stations ready or the number not ready. Move the full Race control / timekeepers button below Started riders on Start and below Recording history on Lap/Finish. Provide Back from Race control. Continue live readiness/staleness updates without rebuilding the timing screen.
+- Fit the Race list and action buttons within mobile width. Wrap name/date/time/rider count/status into compact rows, keeping View/Edit and Remove side by side. Retain sorting, selected highlighting, half-second multi-select and confirmation/eligibility rules. Do not introduce duplicate functional controls for responsive layouts.
+- Acceptance covers exactly four visible tabs per mode, confirmation/cancel/stale race protection, no-checkpoint Lap, preserved queued timestamps/Audio, readiness/control placement, and visible action buttons without horizontal overflow at 320, 375 and 430px viewport widths. Retain Beta 0.13.1's unchanged-poll/navigation performance protections.
