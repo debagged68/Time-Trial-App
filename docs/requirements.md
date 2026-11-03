@@ -1,6 +1,6 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.24 — compact capture and approved race organisers through Beta 0.16  
+Version: 1.25 — race list and bulk action performance through Beta 0.16.1  
 Original baseline: 14 October 2026  
 Last updated: 3 November 2026  
 Repository: debagged68/Time-Trial-App  
@@ -985,3 +985,13 @@ Recompute New/Duplicate eligibility after list/permission refresh, display a rea
 - Approved organisers can read shared courses for setup. The site administrator, a course creator or an administrator of a race using that course can edit it while unlocked; others may duplicate it. Preserve server-enforced course/race locks after starting/completing. Expose view/edit capability accurately in controls.
 - Explicitly removing creation approval prevents new race/course creation and new administrator appointments; existing per-race memberships remain separately managed in Race access. Site approval does not create another site administrator. Accounts without assigned races do not automatically create synthetic race/course records merely by opening the app.
 - Retain all existing race data, original timing evidence and Beta 0.15.1 durable queue protections. Acceptance covers compact queues and manual/voice confirmation, mobile widths/landscape, creator ownership across saves, approval-only creation/delegation, unrelated race isolation, course ownership/locks, revocation and legacy compatibility, plus existing timing/sync regressions. Phone speech and field accuracy remain validation tasks.
+
+## 38. Race list and bulk action performance — Beta 0.16.1
+
+- Race selection must fetch lightweight summary rows rather than calculate all rider results. Keep complete analytics, rider filters and fastest times on Dashboard. Use the shared model for basic summaries; summaries do not replace authoritative race/timing records.
+- Persist compact summaries atomically in race-object metadata on create, timing and lifecycle writes. Support legacy/missing/oversized summary fallback without resetting or bulk rewriting races. Bound full-object reads to six concurrent requests and legacy summary cache size; invalidate cached summaries when listed object ETags change.
+- Reuse summaries and permission reads only within a request. Revalidate access for each account/request and each timing upload as before; never cache user grants in shared summary caches. Preserve per-race ownership, station permissions, setup locks, uniqueness checks and conditional writes.
+- Coalesce inventory refreshes and fetch full analytics when moving from a lightweight race list to Dashboard. Start independent initial refreshes concurrently. A response arriving during the brief interaction-protection window must repaint shortly afterwards rather than wait for the next 15-second poll. Preserve open editors/dialogs, active input and stable timing targets; show placeholders while detailed analytics load.
+- Bulk delete/archive processes up to three independent items concurrently, with current list/course ETags avoiding redundant full-object downloads. Retain a fetch fallback when no version is known. The server must validate the actual current version, permission and live-race eligibility for every item; dirty local records remain protected.
+- Show completed/failed progress during bulk actions, prevent duplicate submissions, bound network waits and preserve/report individual failures. Do not hide or silently remove failed records. Retain confirmed deletion/archive prompts, tombstones, original evidence and restoration rules.
+- Acceptance includes realistic delayed object-storage tests, pagination, zero-body indexed reads, bounded cold legacy reads, ETag cache invalidation, account isolation/revocation, current/stale/live deletion checks, partial batch failure/progress, request coalescing and repaint after a click. Existing timing, speech, conflict recovery, permission and export regressions remain required. Simulated benchmark speedups do not establish live hosted response times or field timing accuracy.
