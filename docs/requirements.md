@@ -1,8 +1,8 @@
 # Time Trial App — Product and System Requirements
 
-Version: 1.22 — timekeeper permissions and action feedback through Beta 0.15  
+Version: 1.23 — durable upload review and conflict recovery through Beta 0.15.1  
 Original baseline: 14 October 2026  
-Last updated: 1 November 2026  
+Last updated: 3 November 2026  
 Repository: debagged68/Time-Trial-App  
 Status: baseline requirements approved by the organiser. Mobile beta feedback below is approved for implementation; no production timing accuracy is claimed.
 
@@ -962,3 +962,14 @@ Recompute New/Duplicate eligibility after list/permission refresh, display a rea
 - Provide progress and repeated-press protection for race setup save, access save, dashboard refresh, confirmed management removal/archive and source-rider preview. Keep the local timing capture path independent from these network waits.
 - Authorised Start timekeepers may set the next waiting start to the current calibrated time rounded up to a minute, while race/Start station are open. Use the existing domain override calculation, validated as an exact narrowly scoped operation on the server. Finish/checkpoint permissions cannot perform it. Do not grant general setup/roster editing rights. Preserve actual capture timestamps and locked race details after starting; before any historical start the scheduled race date/time and waiting schedule may update together. Scheduled setup time remains HH:mm.
 - Acceptance includes deferred-network pending/success/failure feedback, queued heartbeat/user writes, repeated presses, role-based tools and generated backups, compact access layout, Start-only override API enforcement and forged-change rejection, minute rounding and preserved historical capture evidence. Existing offline, recovery, race-mode, export, autostart and speech tests remain required. Physical-phone behaviour and independent timing accuracy remain field validation.
+
+## 36. Upload review and durable conflict resolution — Beta 0.15.1
+
+- Replay queued operations using the signed-in person's actual race/station permissions. A rejected timekeeper reopen must not leave the local race looking open or enable further captures against a shared closed race. Only race administrators may reopen. An old pending queue without a known shared base must verify shared state before further timing actions.
+- Preserve original queued operations and capture timestamps. Before upgrading an old pending queue, retain the original local race/queue snapshot in recovery backup. Blocked changes remain reviewable and are excluded from shared results until accepted; do not silently accept or delete them.
+- Pause permanent upload errors until explicit review/retry. Continue uploading independent valid operations beyond blocked entries, including when more than 50 are blocked. Recheck dependency errors when shared state changes. Apply the same rules to background uploads for other races.
+- Upload review lists every pending operation with action, affected rider where available, capture/operation time, reference, reason and next action. Distinguish blocked changes from waiting uploads. Retry first checks the current shared race and permissions; reopening by an administrator does not grant a timekeeper setup-edit rights.
+- Keeping the shared version requires confirmation and durably retains that one original local operation and decision before removing it from the upload queue. Expose retained changes and include resolution history plus the original recovery snapshot in Full backup. Related dependent operations may still require individual review. Never undo records already accepted by the server.
+- Ignore late error responses for resolved operations; stale caches, reloads and another tab must not resurrect their queue entries. Scope network callbacks to the selected race/load generation. Preserve the shared version returned by an in-flight successful upload.
+- Rendering, summaries and schedule normalisation must not create repeated unauthorised setup edits. Do not reset test races, courses, entries or shared timing data as part of this fix.
+- Acceptance includes rejected timekeeper reopen plus dependent captures, unchanged original timestamps, all 54 blocked entries visible, eligible uploads beyond a blocked prefix, paused retries, durable reload/tab decisions, late response handling, preserved accepted captures and backups. Existing timing/speech regression suites remain required. Actual phone queue reconciliation and field accuracy remain validation work.
